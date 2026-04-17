@@ -1,0 +1,103 @@
+---
+- name: Install prerequisite packages for Grafana repo
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - apt-transport-https
+    state: present
+    update_cache: true
+
+- name: Create /etc/apt/keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Download Grafana GPG key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /etc/apt/keyrings/grafana.asc
+    mode: "0644"
+  check_mode: false
+
+- name: Add Grafana apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by=/etc/apt/keyrings/grafana.asc]
+      https://apt.grafana.com
+      stable main
+    filename: grafana
+    state: present
+  check_mode: false
+
+- name: Install Grafana Alloy
+  ansible.builtin.apt:
+    name: alloy
+    state: present
+    update_cache: true
+
+- name: Template Alloy config (server mode — laf3)
+  ansible.builtin.template:
+    src: alloy-server.alloy.j2
+    dest: /etc/alloy/config.alloy
+    owner: root
+    group: root
+    mode: "0644"
+  when: alloy_mode == 'server'
+  ignore_errors: "{{ ansible_check_mode }}"
+  notify: Restart alloy
+
+- name: Template Alloy config (node mode — remote nodes)
+  ansible.builtin.template:
+    src: alloy-node.alloy.j2
+    dest: /etc/alloy/config.alloy
+    owner: root
+    group: root
+    mode: "0644"
+  when: alloy_mode == 'node'
+  ignore_errors: "{{ ansible_check_mode }}"
+  notify: Restart alloy
+
+- name: Template Alloy config (minimal mode — RPi Zero 2W, journal only)
+  ansible.builtin.template:
+    src: alloy-minimal.alloy.j2
+    dest: /etc/alloy/config.alloy
+    owner: root
+    group: root
+    mode: "0644"
+  when: alloy_mode == 'minimal'
+  ignore_errors: "{{ ansible_check_mode }}"
+  notify: Restart alloy
+
+- name: Set Alloy HTTP listen address to 0.0.0.0 (required for Prometheus scraping)
+  ansible.builtin.lineinfile:
+    path: /etc/default/alloy
+    regexp: '^CUSTOM_ARGS='
+    line: 'CUSTOM_ARGS="--server.http.listen-addr=0.0.0.0:{{ alloy_ui_port }}"'
+  notify: Restart alloy
+
+- name: Create systemd drop-in directory for Alloy
+  ansible.builtin.file:
+    path: /etc/systemd/system/alloy.service.d
+    state: directory
+    mode: "0755"
+
+- name: Grant Alloy CAP_NET_BIND_SERVICE (for UDP/514)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/alloy.service.d/capabilities.conf
+    content: |
+      [Service]
+      AmbientCapabilities=CAP_NET_BIND_SERVICE
+    mode: "0644"
+  notify: Restart alloy
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start Alloy
+  ansible.builtin.systemd:
+    name: alloy
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"

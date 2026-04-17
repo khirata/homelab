@@ -1,0 +1,23 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/lgtm/templates/grafana-datasources.yaml.j2
+
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: false
+    editable: false
+
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "60s"

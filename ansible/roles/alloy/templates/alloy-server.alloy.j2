@@ -1,0 +1,75 @@
+// Managed by Ansible — do not edit manually.
+// Template: roles/alloy/templates/alloy-server.alloy.j2
+// Mode: server (laf3) — exports local node metrics + receives Unifi syslog
+
+// ── Alloy UI / self-metrics ───────────────────────────────────────────────
+prometheus.exporter.self "alloy" {}
+
+prometheus.scrape "alloy_self" {
+  targets    = prometheus.exporter.self.alloy.targets
+  forward_to = [prometheus.remote_write.laf3.receiver]
+}
+
+// ── Node metrics (via unix exporter) ────────────────────────────────────
+prometheus.exporter.unix "node" {}
+
+prometheus.scrape "node" {
+  targets    = prometheus.exporter.unix.node.targets
+  forward_to = [prometheus.remote_write.laf3.receiver]
+  job_name   = "node"
+}
+
+// ── Prometheus remote write → local Prometheus ──────────────────────────
+prometheus.remote_write "laf3" {
+  endpoint {
+    url = "http://localhost:{{ prometheus_port }}/api/v1/write"
+  }
+}
+
+// ── Unifi syslog receiver → Loki ────────────────────────────────────────
+loki.source.syslog "unifi" {
+  listener {
+    address  = "0.0.0.0:{{ unifi_syslog_port }}"
+    protocol = "udp"
+    syslog_format = "rfc3164"  // Unifi sends BSD syslog, not RFC5424
+    labels   = { job = "unifi", source = "unifi-gw" }
+  }
+  forward_to = [loki.write.laf3.receiver]
+}
+
+// ── Systemd journal → Loki ──────────────────────────────────────────────
+loki.source.journal "systemd" {
+  forward_to    = [loki.write.laf3.receiver]
+  relabel_rules = loki.relabel.journal.rules
+}
+
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+
+  rule {
+    source_labels = ["__journal__hostname"]
+    target_label  = "host"
+  }
+
+  rule {
+    replacement  = "journal"
+    target_label = "job"
+  }
+
+  rule {
+    replacement  = "{{ inventory_hostname }}"
+    target_label = "instance"
+  }
+}
+
+// ── Loki write → local Loki ─────────────────────────────────────────────
+loki.write "laf3" {
+  endpoint {
+    url = "http://localhost:{{ loki_port }}/loki/api/v1/push"
+  }
+}

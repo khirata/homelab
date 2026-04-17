@@ -1,0 +1,94 @@
+---
+- name: Install prerequisite packages for Wazuh repo
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - apt-transport-https
+    state: present
+    update_cache: true
+
+- name: Download Wazuh GPG key
+  ansible.builtin.get_url:
+    url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+    dest: /etc/apt/keyrings/wazuh.asc
+    mode: "0644"
+  check_mode: false
+
+- name: Add Wazuh apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by=/etc/apt/keyrings/wazuh.asc]
+      https://packages.wazuh.com/4.x/apt/
+      stable main
+    filename: wazuh
+    state: present
+  check_mode: false
+
+- name: Install Wazuh Manager
+  ansible.builtin.apt:
+    name: "wazuh-manager={{ wazuh_version }}.*"
+    state: present
+    update_cache: true
+  notify: Restart wazuh-manager
+
+- name: Enable and start Wazuh Manager
+  ansible.builtin.systemd:
+    name: wazuh-manager
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# --- API password management via REST API (wazuh-passwords-tool removed in 4.10) ---
+
+- name: Wait for Wazuh API to be available
+  ansible.builtin.wait_for:
+    host: localhost
+    port: "{{ wazuh_api_port }}"
+    timeout: 60
+  when: not ansible_check_mode
+
+- name: Check if vault password is already active (idempotency)
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_api_port }}/security/user/authenticate?raw=true"
+    method: GET
+    url_username: "{{ wazuh_manager_api_user }}"
+    url_password: "{{ vault_wazuh_api_password }}"
+    validate_certs: false
+    force_basic_auth: true
+    status_code: [200, 401]
+  register: wazuh_vault_auth
+  no_log: true
+  when: not ansible_check_mode
+
+- name: Get Wazuh API token using default password (first run only)
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_api_port }}/security/user/authenticate?raw=true"
+    method: GET
+    url_username: "{{ wazuh_manager_api_user }}"
+    url_password: wazuh
+    validate_certs: false
+    force_basic_auth: true
+    return_content: true
+  register: wazuh_default_auth
+  no_log: true
+  when:
+    - not ansible_check_mode
+    - wazuh_vault_auth.status == 401
+
+- name: Set Wazuh API admin password via REST API
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_api_port }}/security/users/1"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ wazuh_default_auth.content | trim }}"
+    body_format: json
+    body:
+      password: "{{ vault_wazuh_api_password }}"
+    validate_certs: false
+    status_code: 200
+  no_log: true
+  changed_when: true
+  when:
+    - not ansible_check_mode
+    - wazuh_vault_auth.status == 401
+  notify: Restart wazuh-manager

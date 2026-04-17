@@ -1,0 +1,3 @@
+---
+wazuh_manager_api_user: "wazuh"
+# wazuh_version and vault_wazuh_* come from group_vars/all/

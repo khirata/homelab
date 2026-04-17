@@ -1,0 +1,11 @@
+---
+- name: SIEM server
+  hosts: siem_server
+  become: true
+  vars:
+    ansible_remote_tmp: /tmp
+  roles:
+    - docker
+    - lgtm
+    - wazuh_manager
+    - alloy  # server mode: receives Unifi syslog on UDP/514

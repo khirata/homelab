@@ -1,0 +1,43 @@
+---
+# =============================================================================
+# Connection & identity — sourced from .env (never committed)
+# =============================================================================
+siem_server_ip: "{{ lookup('env', 'SIEM_SERVER_IP') }}"
+siem_server_host: "{{ lookup('env', 'SIEM_SERVER_HOST') }}"
+fleet_node_1_ip: "{{ lookup('env', 'FLEET_NODE_1_IP') }}"
+fleet_node_2_ip: "{{ lookup('env', 'FLEET_NODE_2_IP') }}"
+
+# =============================================================================
+# Secrets — sourced from .env (never committed)
+# =============================================================================
+vault_grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') }}"
+vault_wazuh_api_password: "{{ lookup('env', 'WAZUH_API_PASSWORD') }}"
+vault_wazuh_enrollment_password: "{{ lookup('env', 'WAZUH_ENROLLMENT_PASSWORD') }}"
+
+# =============================================================================
+# Directory layout (safe to commit)
+# =============================================================================
+siem_base_dir: /opt/siem
+siem_config_dir: /opt/siem/config
+siem_data_dir: /opt/siem/data
+
+# =============================================================================
+# Ports (safe to commit)
+# =============================================================================
+grafana_port: 3000
+prometheus_port: 9090
+loki_port: 3100
+alloy_ui_port: 12345
+unifi_syslog_port: 514
+wazuh_agent_port: 1514
+wazuh_enrollment_port: 1515
+wazuh_api_port: 55000
+
+# =============================================================================
+# Image / package versions (safe to commit — bump here to upgrade)
+# =============================================================================
+grafana_version: "11.5.2"
+loki_version: "3.4.2"
+prometheus_version: "v3.3.0"
+alloy_version: "1.7.5"
+wazuh_version: "4.10"

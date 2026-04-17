@@ -1,0 +1,6 @@
+---
+- name: Restart LGTM stack
+  ansible.builtin.command:
+    cmd: docker compose -f {{ siem_config_dir }}/docker-compose.lgtm.yml up -d
+  changed_when: true
+  ignore_errors: "{{ ansible_check_mode }}"

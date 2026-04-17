@@ -1,0 +1,12 @@
+---
+# Inherited from group_vars/all/vars.yml — listed here for role-level documentation.
+# Override in group_vars or host_vars if needed.
+
+# grafana_version: "11.5.2"
+# loki_version: "3.4.2"
+# prometheus_version: "v3.3.0"
+# siem_config_dir: /opt/siem/config
+# siem_data_dir: /opt/siem/data
+# grafana_port: 3000
+# loki_port: 3100
+# prometheus_port: 9090

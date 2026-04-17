@@ -1,0 +1,6 @@
+---
+- name: Restart wazuh-manager
+  ansible.builtin.systemd:
+    name: wazuh-manager
+    state: restarted
+  ignore_errors: "{{ ansible_check_mode }}"

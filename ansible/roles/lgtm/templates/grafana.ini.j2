@@ -1,0 +1,29 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/lgtm/templates/grafana.ini.j2
+
+[server]
+http_port = 3000
+# Bind to all interfaces so the host port mapping works
+http_addr =
+
+[security]
+# Admin password is set via GF_SECURITY_ADMIN_PASSWORD env var in Docker Compose.
+# Do not set admin_password here.
+admin_user = admin
+disable_gravatar = true
+cookie_secure = false
+
+[paths]
+provisioning = /etc/grafana/provisioning
+
+[log]
+mode = console
+level = info
+
+[analytics]
+reporting_enabled = false
+check_for_updates = false
+check_for_plugin_updates = false
+
+[users]
+allow_sign_up = false

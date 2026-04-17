@@ -1,0 +1,90 @@
+---
+- name: Create SIEM config directory
+  ansible.builtin.file:
+    path: "{{ siem_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create SIEM data directories (Loki + Prometheus, UID 65534)
+  ansible.builtin.file:
+    path: "{{ siem_data_dir }}/{{ item }}"
+    state: directory
+    owner: "65534"  # nobody — matches Loki (10001 maps to nobody on host) and Prometheus
+    group: "65534"
+    mode: "0755"
+  loop:
+    - loki
+    - prometheus
+
+- name: Create Grafana data directory (UID 472)
+  ansible.builtin.file:
+    path: "{{ siem_data_dir }}/grafana"
+    state: directory
+    owner: "472"  # grafana user in grafana/grafana Docker image
+    group: "472"
+    mode: "0755"
+
+- name: Create Grafana provisioning directories
+  ansible.builtin.file:
+    path: "{{ siem_config_dir }}/grafana-provisioning/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - datasources
+    - dashboards
+
+- name: Template Docker Compose file
+  ansible.builtin.template:
+    src: docker-compose.lgtm.yml.j2
+    dest: "{{ siem_config_dir }}/docker-compose.lgtm.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart LGTM stack
+
+- name: Template Prometheus config
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ siem_config_dir }}/prometheus.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart LGTM stack
+
+- name: Template Loki config
+  ansible.builtin.template:
+    src: loki-config.yaml.j2
+    dest: "{{ siem_config_dir }}/loki-config.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart LGTM stack
+
+- name: Template Grafana ini
+  ansible.builtin.template:
+    src: grafana.ini.j2
+    dest: "{{ siem_config_dir }}/grafana.ini"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart LGTM stack
+
+- name: Template Grafana provisioned datasources
+  ansible.builtin.template:
+    src: grafana-datasources.yaml.j2
+    dest: "{{ siem_config_dir }}/grafana-provisioning/datasources/datasources.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart LGTM stack
+
+- name: Pull and start LGTM stack
+  ansible.builtin.command:
+    cmd: docker compose -f {{ siem_config_dir }}/docker-compose.lgtm.yml up -d --pull always
+  register: lgtm_up
+  changed_when: "'Started' in lgtm_up.stdout or 'Created' in lgtm_up.stdout or 'Pulled' in lgtm_up.stdout"
+  ignore_errors: "{{ ansible_check_mode }}"

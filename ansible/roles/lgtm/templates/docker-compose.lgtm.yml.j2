@@ -1,0 +1,78 @@
+---
+# Managed by Ansible — do not edit manually.
+# Template: roles/lgtm/templates/docker-compose.lgtm.yml.j2
+
+networks:
+  lgtm:
+    driver: bridge
+
+volumes:
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: {{ siem_data_dir }}/grafana
+  loki_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: {{ siem_data_dir }}/loki
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: {{ siem_data_dir }}/prometheus
+
+services:
+  grafana:
+    image: grafana/grafana:{{ grafana_version }}
+    container_name: grafana
+    restart: unless-stopped
+    networks:
+      - lgtm
+    ports:
+      - "{{ grafana_port }}:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "{{ vault_grafana_admin_password }}"
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      GF_PATHS_CONFIG: /etc/grafana/grafana.ini
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - {{ siem_config_dir }}/grafana.ini:/etc/grafana/grafana.ini:ro
+      - {{ siem_config_dir }}/grafana-provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - loki
+      - prometheus
+
+  loki:
+    image: grafana/loki:{{ loki_version }}
+    container_name: loki
+    restart: unless-stopped
+    networks:
+      - lgtm
+    ports:
+      - "{{ loki_port }}:3100"  # exposed for Alloy remote_write from nodes
+    volumes:
+      - loki_data:/loki
+      - {{ siem_config_dir }}/loki-config.yaml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+
+  prometheus:
+    image: prom/prometheus:{{ prometheus_version }}
+    container_name: prometheus
+    restart: unless-stopped
+    networks:
+      - lgtm
+    ports:
+      - "{{ prometheus_port }}:9090"  # exposed for Alloy remote_write from nodes
+    volumes:
+      - prometheus_data:/prometheus
+      - {{ siem_config_dir }}/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-remote-write-receiver

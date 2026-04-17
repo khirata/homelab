@@ -1,0 +1,4 @@
+---
+# "server" = laf3 (syslog receiver + self metrics)
+# "node"   = remote nodes (journal + metrics → laf3)
+alloy_mode: node
