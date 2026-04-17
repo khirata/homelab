@@ -38,6 +38,18 @@
     state: started
   ignore_errors: "{{ ansible_check_mode }}"
 
+# --- Agent enrollment password (authd.pass) ---
+
+- name: Write agent enrollment password to authd.pass
+  ansible.builtin.copy:
+    content: "{{ vault_wazuh_enrollment_password }}"
+    dest: /var/ossec/etc/authd.pass
+    owner: root
+    group: wazuh
+    mode: "0640"
+  no_log: true
+  notify: Restart wazuh-manager
+
 # --- API password management via REST API (wazuh-passwords-tool removed in 4.10) ---
 
 - name: Wait for Wazuh API to be available
