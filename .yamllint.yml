@@ -1,0 +1,32 @@
+extends: default
+
+rules:
+  line-length:
+    max: 160
+    level: warning       # Ansible tasks get long; warn but don't fail
+
+  truthy:
+    # 'yes'/'no' used by existing roles; 'on'/'off' used by GitHub Actions
+    allowed-values: ["true", "false", "yes", "no", "on", "off"]
+    level: warning
+
+  indentation:
+    spaces: 2
+    indent-sequences: whatever
+
+  comments:
+    min-spaces-from-content: 1
+
+  # Required by ansible-lint
+  comments-indentation: false
+
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
+
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+
+ignore: |
+  .git/

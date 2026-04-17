@@ -1,0 +1,74 @@
+---
+# CI playbook — renders every Jinja2 template to /tmp/rendered/.
+# Run against localhost with mock-vars.yml; validates that all template
+# variables are defined and Jinja2 syntax is correct.
+#
+# Usage (from repo root):
+#   ansible-playbook ansible/ci/render-templates.yml \
+#     -i ansible/ci/mock-inventory.ini \
+#     -e @ansible/ci/mock-vars.yml
+
+- name: Render all Jinja2 templates
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    render_dir: /tmp/rendered
+
+  tasks:
+    - name: Create render output directory
+      ansible.builtin.file:
+        path: "{{ render_dir }}"
+        state: directory
+        mode: "0755"
+
+    # ── LGTM templates ────────────────────────────────────────────────────
+
+    - name: Render docker-compose.lgtm.yml
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/docker-compose.lgtm.yml.j2"
+        dest: "{{ render_dir }}/docker-compose.lgtm.yml"
+        mode: "0644"
+
+    - name: Render prometheus.yml
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/prometheus.yml.j2"
+        dest: "{{ render_dir }}/prometheus.yml"
+        mode: "0644"
+
+    - name: Render loki-config.yaml
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/loki-config.yaml.j2"
+        dest: "{{ render_dir }}/loki-config.yaml"
+        mode: "0644"
+
+    - name: Render grafana.ini
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/grafana.ini.j2"
+        dest: "{{ render_dir }}/grafana.ini"
+        mode: "0644"
+
+    - name: Render grafana-datasources.yaml
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/grafana-datasources.yaml.j2"
+        dest: "{{ render_dir }}/grafana-datasources.yaml"
+        mode: "0644"
+
+    # ── Alloy templates ───────────────────────────────────────────────────
+
+    - name: Render alloy-server.alloy (server mode)
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/alloy/templates/alloy-server.alloy.j2"
+        dest: "{{ render_dir }}/alloy-server.alloy"
+        mode: "0644"
+
+    - name: List rendered files
+      ansible.builtin.find:
+        paths: "{{ render_dir }}"
+        patterns: "*"
+      register: rendered_files
+
+    - name: Show rendered file paths
+      ansible.builtin.debug:
+        msg: "{{ rendered_files.files | map(attribute='path') | list }}"

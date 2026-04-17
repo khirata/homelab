@@ -1,0 +1,123 @@
+---
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # ── 1. Lint ────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: ""
+
+      - name: Install lint tools
+        run: pip install ansible-core ansible-lint yamllint
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install -r ansible/requirements.yml
+
+      - name: yamllint
+        run: yamllint .
+
+      - name: ansible-lint
+        run: ansible-lint ansible/site.yml
+        env:
+          ANSIBLE_ROLES_PATH: ansible/roles
+
+  # ── 2. Syntax check ────────────────────────────────────────────────────
+  # No vault needed — secrets come from env vars at deploy time.
+  # Mock env vars injected here so lookup('env', ...) resolves to dummies.
+  syntax-check:
+    name: Syntax check
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: ""
+
+      - name: Install Ansible
+        run: pip install ansible-core
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install -r ansible/requirements.yml
+
+      - name: Syntax check — SIEM server play
+        run: |
+          ansible-playbook --syntax-check \
+            -i ansible/inventory/hosts.ini \
+            ansible/site.yml
+        env:
+          ANSIBLE_ROLES_PATH: ansible/roles
+          ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
+          # Mock values so lookup('env', ...) resolves during syntax check
+          SIEM_SERVER_IP: "10.0.0.1"
+          SIEM_SERVER_HOST: "siem.local"
+          SIEM_SERVER_USER: "ci"
+          FLEET_NODE_1_IP: "10.0.0.2"
+          FLEET_NODE_2_IP: "10.0.0.3"
+          GRAFANA_ADMIN_PASSWORD: "ci-dummy"
+          WAZUH_API_PASSWORD: "Ci-Dummy1!"
+          WAZUH_ENROLLMENT_PASSWORD: "ci-dummy"
+
+  # ── 3. Template rendering ──────────────────────────────────────────────
+  # Renders every .j2 template with mock vars.
+  # Runs yamllint on the rendered YAML outputs (lgtm templates).
+  # Alloy .alloy configs are shown for human inspection.
+  template-render:
+    name: Template render
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: ""
+
+      - name: Install Ansible + yamllint
+        run: pip install ansible-core yamllint
+
+      - name: Render all templates
+        run: |
+          ansible-playbook ansible/ci/render-templates.yml \
+            -i ansible/ci/mock-inventory.ini \
+            -e @ansible/ci/mock-vars.yml
+        env:
+          ANSIBLE_ROLES_PATH: ansible/roles
+
+      - name: Validate rendered YAML files
+        run: |
+          yamllint \
+            /tmp/rendered/prometheus.yml \
+            /tmp/rendered/loki-config.yaml \
+            /tmp/rendered/grafana-datasources.yaml \
+            /tmp/rendered/docker-compose.lgtm.yml
+
+      - name: Show rendered Alloy configs
+        run: |
+          echo "=== alloy-server.alloy ===" && cat /tmp/rendered/alloy-server.alloy
+
+      - name: Upload rendered templates as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-templates
+          path: /tmp/rendered/
+          retention-days: 7
