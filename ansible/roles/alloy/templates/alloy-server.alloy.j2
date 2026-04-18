@@ -26,13 +26,26 @@ prometheus.remote_write "laf3" {
   }
 }
 
-// ── Unifi syslog receiver → Loki ────────────────────────────────────────
-loki.source.syslog "unifi" {
+// ── Unifi syslog receivers → Loki ───────────────────────────────────────
+// Each site gets its own port so logs carry an indexed 'site' label.
+// Lafayette GW → :{{ unifi_syslog_port_laf }}
+// Sakamoto GW  → :{{ unifi_syslog_port_sak }}  (expand with more sak hosts later)
+loki.source.syslog "unifi_laf" {
   listener {
-    address  = "0.0.0.0:{{ unifi_syslog_port }}"
-    protocol = "udp"
+    address       = "0.0.0.0:{{ unifi_syslog_port_laf }}"
+    protocol      = "udp"
     syslog_format = "rfc3164"  // Unifi sends BSD syslog, not RFC5424
-    labels   = { job = "unifi", source = "unifi-gw" }
+    labels        = { job = "unifi", site = "lafayette" }
+  }
+  forward_to = [loki.write.laf3.receiver]
+}
+
+loki.source.syslog "unifi_sak" {
+  listener {
+    address       = "0.0.0.0:{{ unifi_syslog_port_sak }}"
+    protocol      = "udp"
+    syslog_format = "rfc3164"
+    labels        = { job = "unifi", site = "sakamoto" }
   }
   forward_to = [loki.write.laf3.receiver]
 }

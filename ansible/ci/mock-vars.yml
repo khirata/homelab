@@ -20,7 +20,8 @@ grafana_port: 3000
 prometheus_port: 9090
 loki_port: 3100
 alloy_ui_port: 12345
-unifi_syslog_port: 514
+unifi_syslog_port_laf: 514
+unifi_syslog_port_sak: 515
 wazuh_agent_port: 1514
 wazuh_enrollment_port: 1515
 wazuh_api_port: 55000
