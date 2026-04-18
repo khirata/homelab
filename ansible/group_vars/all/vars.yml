@@ -12,7 +12,6 @@ fleet_node_2_ip: "{{ lookup('env', 'FLEET_NODE_2_IP') }}"
 # =============================================================================
 vault_grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') }}"
 vault_wazuh_api_password: "{{ lookup('env', 'WAZUH_API_PASSWORD') }}"
-vault_wazuh_enrollment_password: "{{ lookup('env', 'WAZUH_ENROLLMENT_PASSWORD') }}"
 
 # =============================================================================
 # Directory layout (safe to commit)

@@ -38,27 +38,6 @@
     state: started
   ignore_errors: "{{ ansible_check_mode }}"
 
-# --- Agent enrollment password (authd.pass) ---
-
-- name: Enable password-based agent enrollment in ossec.conf
-  ansible.builtin.lineinfile:
-    path: /var/ossec/etc/ossec.conf
-    regexp: '<use_password>.*</use_password>'
-    line: '    <use_password>yes</use_password>'
-    backrefs: true
-  notify: Restart wazuh-manager
-  ignore_errors: "{{ ansible_check_mode }}"
-
-- name: Write agent enrollment password to authd.pass
-  ansible.builtin.copy:
-    content: "{{ vault_wazuh_enrollment_password }}"
-    dest: /var/ossec/etc/authd.pass
-    owner: root
-    group: wazuh
-    mode: "0640"
-  no_log: true
-  notify: Restart wazuh-manager
-
 # --- API password management via REST API (wazuh-passwords-tool removed in 4.10) ---
 
 - name: Wait for Wazuh API to be available

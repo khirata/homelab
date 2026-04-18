@@ -44,4 +44,3 @@ prometheus_scrape_targets:
 # --- Vault variables (CI dummies — not real credentials) ---
 vault_grafana_admin_password: "ci-test-password"
 vault_wazuh_api_password: "Ci-Test-1!"
-vault_wazuh_enrollment_password: "ci-test-password"
