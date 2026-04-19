@@ -1,10 +1,11 @@
 # Managed by Ansible — do not edit manually.
 # Template: roles/redis/templates/redis.conf.j2
 
-# Network — localhost only; Docker containers reach via host-gateway
+# Network — bind all interfaces so Docker containers can reach via host-gateway
 bind {{ redis_bind }}
 port {{ redis_port }}
 protected-mode yes
+requirepass {{ vault_redis_password }}
 
 # Persistence — RDB snapshots
 save 3600 1

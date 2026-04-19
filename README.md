@@ -323,7 +323,8 @@ Sourced from `.env` at deploy time via `lookup('env', ...)` — never committed.
 |---|---|
 | `GRAFANA_ADMIN_PASSWORD` | Grafana admin login |
 | `WAZUH_API_PASSWORD` | Wazuh REST API (`wazuh` user) |
-| `INFISICAL_DB_PASSWORD` | PostgreSQL `infisical` user |
+| `POSTGRESQL_PASSWORD` | PostgreSQL `infisical` user |
+| `REDIS_PASSWORD` | Redis `requirepass` (binds to 0.0.0.0 for Docker access) |
 | `INFISICAL_ENCRYPTION_KEY` | Infisical at-rest secret encryption (64-char hex) |
 | `INFISICAL_AUTH_SECRET` | Infisical JWT signing |
 | `INFISICAL_SITE_URL` | Infisical cookie/CORS origin (e.g. `http://10.x.x.x:8080`) |
