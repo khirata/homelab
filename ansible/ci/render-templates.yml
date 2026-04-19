@@ -63,12 +63,12 @@
         dest: "{{ render_dir }}/alloy-server.alloy"
         mode: "0644"
 
-    # ── Infisical templates ───────────────────────────────────────────────
+    # ── Redis / Infisical templates ───────────────────────────────────────
 
-    - name: Render docker-compose.redis.yml
+    - name: Render redis.conf
       ansible.builtin.template:
-        src: "{{ playbook_dir }}/../roles/redis/templates/docker-compose.redis.yml.j2"
-        dest: "{{ render_dir }}/docker-compose.redis.yml"
+        src: "{{ playbook_dir }}/../roles/redis/templates/redis.conf.j2"
+        dest: "{{ render_dir }}/redis.conf"
         mode: "0644"
 
     - name: Render docker-compose.infisical.yml
