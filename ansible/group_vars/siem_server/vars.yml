@@ -6,9 +6,16 @@ ansible_user: "{{ lookup('env', 'SIEM_SERVER_USER') }}"
 # Alloy runs in server mode: receives Unifi syslog + exports local metrics
 alloy_mode: server
 
-# Prometheus scrape targets — Alloy /metrics endpoints in the fleet
-# Must use IPs: Go's DNS resolver bypasses nss-mdns and can't resolve .local
+# Short hostname used as the instance label in Prometheus metrics (strip .local)
+node_name: "{{ siem_server_host | regex_replace('\\..*$', '') }}"
+
+# Prometheus scrape targets — Alloy /metrics endpoints in the fleet.
+# Must use IPs: Go's DNS resolver bypasses nss-mdns and can't resolve .local.
+# instance: sets the Prometheus instance label to a human-readable hostname.
 prometheus_scrape_targets:
-  - "{{ siem_server_ip }}:{{ alloy_ui_port }}"
-  - "{{ fleet_node_1_ip }}:{{ alloy_ui_port }}"
-  - "{{ fleet_node_2_ip }}:{{ alloy_ui_port }}"
+  - target: "{{ siem_server_ip }}:{{ alloy_ui_port }}"
+    instance: "{{ node_name }}"
+  - target: "{{ fleet_node_1_ip }}:{{ alloy_ui_port }}"
+    instance: "{{ fleet_node_1_name }}"
+  - target: "{{ fleet_node_2_ip }}:{{ alloy_ui_port }}"
+    instance: "{{ fleet_node_2_name }}"
