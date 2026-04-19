@@ -137,6 +137,7 @@
 - name: Reload systemd daemon
   ansible.builtin.systemd:
     daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Enable and start pg-backup timer
   ansible.builtin.systemd:
