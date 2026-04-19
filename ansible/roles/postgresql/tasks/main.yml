@@ -1,0 +1,144 @@
+---
+- name: Install prerequisite packages for PGDG repo
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - curl
+    state: present
+    update_cache: true
+
+- name: Create /etc/apt/keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Download PGDG GPG key
+  ansible.builtin.get_url:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    dest: /etc/apt/keyrings/postgresql.asc
+    mode: "0644"
+  check_mode: false
+
+- name: Add PGDG apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by=/etc/apt/keyrings/postgresql.asc]
+      https://apt.postgresql.org/pub/repos/apt
+      {{ ansible_distribution_release }}-pgdg main
+    filename: pgdg
+    state: present
+  check_mode: false
+
+- name: Install PostgreSQL {{ postgresql_version }}
+  ansible.builtin.apt:
+    name: "postgresql-{{ postgresql_version }}"
+    state: present
+    update_cache: true
+  notify: Restart postgresql
+
+- name: Enable and start PostgreSQL
+  ansible.builtin.systemd:
+    name: "postgresql@{{ postgresql_version }}-main"
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# ── Database + user provisioning ──────────────────────────────────────────────
+
+- name: Check if infisical PostgreSQL role exists
+  ansible.builtin.command:
+    cmd: psql -tc "SELECT 1 FROM pg_roles WHERE rolname='{{ infisical_db_user }}'"
+  become: true
+  become_user: postgres
+  register: pg_role_check
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Create infisical PostgreSQL role
+  ansible.builtin.command:
+    cmd: >-
+      psql -c "CREATE USER {{ infisical_db_user }}
+      WITH PASSWORD '{{ vault_infisical_db_password }}';"
+  become: true
+  become_user: postgres
+  when:
+    - not ansible_check_mode
+    - pg_role_check.stdout is not search('1')
+  no_log: true
+
+- name: Update infisical PostgreSQL role password
+  ansible.builtin.command:
+    cmd: >-
+      psql -c "ALTER USER {{ infisical_db_user }}
+      WITH PASSWORD '{{ vault_infisical_db_password }}';"
+  become: true
+  become_user: postgres
+  when:
+    - not ansible_check_mode
+    - pg_role_check.stdout is search('1')
+  no_log: true
+  changed_when: false
+
+- name: Check if infisical database exists
+  ansible.builtin.command:
+    cmd: psql -tc "SELECT 1 FROM pg_database WHERE datname='{{ infisical_db_name }}'"
+  become: true
+  become_user: postgres
+  register: pg_db_check
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Create infisical database
+  ansible.builtin.command:
+    cmd: "psql -c \"CREATE DATABASE {{ infisical_db_name }} OWNER {{ infisical_db_user }};\""
+  become: true
+  become_user: postgres
+  when:
+    - not ansible_check_mode
+    - pg_db_check.stdout is not search('1')
+
+# ── Backup setup ──────────────────────────────────────────────────────────────
+
+- name: Create PostgreSQL backup directory
+  ansible.builtin.file:
+    path: "{{ pg_backup_dir }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: "0750"
+
+- name: Template pg-backup script
+  ansible.builtin.template:
+    src: pg-backup.sh.j2
+    dest: /usr/local/bin/pg-backup.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Template pg-backup systemd service
+  ansible.builtin.template:
+    src: pg-backup.service.j2
+    dest: /etc/systemd/system/pg-backup.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Template pg-backup systemd timer
+  ansible.builtin.template:
+    src: pg-backup.timer.j2
+    dest: /etc/systemd/system/pg-backup.timer
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start pg-backup timer
+  ansible.builtin.systemd:
+    name: pg-backup.timer
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"

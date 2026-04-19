@@ -1,0 +1,25 @@
+---
+# Managed by Ansible — do not edit manually.
+# Template: roles/infisical/templates/docker-compose.infisical.yml.j2
+
+services:
+  db-migration:
+    image: infisical/infisical:{{ infisical_version }}
+    container_name: infisical-migration
+    env_file: "{{ siem_config_dir }}/infisical.env"
+    command: npm run migration:latest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  infisical:
+    image: infisical/infisical:{{ infisical_version }}
+    container_name: infisical
+    restart: unless-stopped
+    depends_on:
+      db-migration:
+        condition: service_completed_successfully
+    env_file: "{{ siem_config_dir }}/infisical.env"
+    ports:
+      - "{{ infisical_port }}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

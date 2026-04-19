@@ -1,0 +1,6 @@
+---
+# Referenced from group_vars/all/vars.yml — listed here for role-level documentation.
+# Override in group_vars or host_vars if needed.
+
+# redis_port: 6379
+# redis_bind: "127.0.0.1"

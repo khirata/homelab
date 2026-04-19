@@ -6,6 +6,9 @@
     ansible_remote_tmp: /tmp
   roles:
     - docker
+    - postgresql  # shared infra — must run before infisical
+    - redis       # shared infra — must run before infisical
     - lgtm
     - wazuh_manager
-    - alloy  # server mode: receives Unifi syslog on UDP/514
+    - alloy        # server mode: receives Unifi syslog on UDP/514
+    - infisical
