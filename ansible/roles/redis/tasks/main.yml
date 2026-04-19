@@ -1,38 +1,7 @@
 ---
-- name: Install prerequisite packages for Redis repo
+- name: Install Redis from Debian default repo
   ansible.builtin.apt:
-    name:
-      - gnupg
-      - curl
-    state: present
-    update_cache: true
-
-- name: Create /etc/apt/keyrings directory
-  ansible.builtin.file:
-    path: /etc/apt/keyrings
-    state: directory
-    mode: "0755"
-
-- name: Download Redis GPG key
-  ansible.builtin.get_url:
-    url: https://packages.redis.io/gpg
-    dest: /etc/apt/keyrings/redis.asc
-    mode: "0644"
-  check_mode: false
-
-- name: Add Redis apt repository
-  ansible.builtin.apt_repository:
-    repo: >-
-      deb [signed-by=/etc/apt/keyrings/redis.asc]
-      https://packages.redis.io/deb
-      {{ ansible_distribution_release }} main
-    filename: redis
-    state: present
-  check_mode: false
-
-- name: Install Redis
-  ansible.builtin.apt:
-    name: redis
+    name: redis-server
     state: present
     update_cache: true
   notify: Restart redis
