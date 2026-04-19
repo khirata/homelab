@@ -9,7 +9,8 @@ global:
 scrape_configs:
   - job_name: alloy
     static_configs:
-      - targets:
-{% for target in prometheus_scrape_targets %}
-          - "{{ target }}"
+{% for item in prometheus_scrape_targets %}
+      - targets: ["{{ item.target }}"]
+        labels:
+          instance: "{{ item.instance }}"
 {% endfor %}
