@@ -51,7 +51,7 @@
     cmd: psql -tc "SELECT 1 FROM pg_roles WHERE rolname='{{ infisical_db_user }}'"
   become: true
   become_user: postgres
-  register: pg_role_check
+  register: postgresql_role_check
   changed_when: false
   when: not ansible_check_mode
 
@@ -64,8 +64,9 @@
   become_user: postgres
   when:
     - not ansible_check_mode
-    - pg_role_check.stdout is not search('1')
+    - postgresql_role_check.stdout is not search('1')
   no_log: true
+  changed_when: true
 
 - name: Update infisical PostgreSQL role password
   ansible.builtin.command:
@@ -76,7 +77,7 @@
   become_user: postgres
   when:
     - not ansible_check_mode
-    - pg_role_check.stdout is search('1')
+    - postgresql_role_check.stdout is search('1')
   no_log: true
   changed_when: false
 
@@ -85,7 +86,7 @@
     cmd: psql -tc "SELECT 1 FROM pg_database WHERE datname='{{ infisical_db_name }}'"
   become: true
   become_user: postgres
-  register: pg_db_check
+  register: postgresql_db_check
   changed_when: false
   when: not ansible_check_mode
 
@@ -96,7 +97,8 @@
   become_user: postgres
   when:
     - not ansible_check_mode
-    - pg_db_check.stdout is not search('1')
+    - postgresql_db_check.stdout is not search('1')
+  changed_when: true
 
 # ── Backup setup ──────────────────────────────────────────────────────────────
 
