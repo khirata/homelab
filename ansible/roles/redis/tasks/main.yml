@@ -1,27 +1,24 @@
 ---
-- name: Create Redis data directory
-  ansible.builtin.file:
-    path: "{{ siem_data_dir }}/redis"
-    state: directory
-    owner: "999"  # redis user in redis:alpine Docker image
-    group: "1000"
-    mode: "0755"
+- name: Install redis-server
+  ansible.builtin.apt:
+    name: redis-server
+    state: present
+    update_cache: true
 
-- name: Template Redis Docker Compose file
+- name: Template Redis config
   ansible.builtin.template:
-    src: docker-compose.redis.yml.j2
-    dest: "{{ siem_config_dir }}/docker-compose.redis.yml"
-    owner: root
-    group: root
-    mode: "0644"
+    src: redis.conf.j2
+    dest: /etc/redis/redis.conf
+    owner: redis
+    group: redis
+    mode: "0640"
+  ignore_errors: "{{ ansible_check_mode }}"
   notify: Restart redis
 
-- name: Pull and start Redis
-  ansible.builtin.command:
-    cmd: docker compose -f {{ siem_config_dir }}/docker-compose.redis.yml up -d --pull always
-  register: redis_up
-  changed_when: >-
-    'Started' in redis_up.stdout or
-    'Created' in redis_up.stdout or
-    'Pulled' in redis_up.stdout
+- name: Enable and start redis-server
+  ansible.builtin.systemd:
+    name: redis-server
+    enabled: true
+    state: started
+    daemon_reload: true
   ignore_errors: "{{ ansible_check_mode }}"
