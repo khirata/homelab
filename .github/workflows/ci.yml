@@ -6,11 +6,30 @@ on:
     branches:
       - main
       - "feat/**"
+      - "claude/**"
   pull_request:
     branches:
       - main
 
 jobs:
+  # ── 0. Makefile lint ───────────────────────────────────────────────────
+  makefile-lint:
+    name: Makefile lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+          cache: false
+
+      - name: Install checkmake
+        run: go install github.com/mrtazz/checkmake/cmd/checkmake@latest
+
+      - name: checkmake
+        run: checkmake Makefile
+
   # ── 1. Lint ────────────────────────────────────────────────────────────
   lint:
     name: Lint
