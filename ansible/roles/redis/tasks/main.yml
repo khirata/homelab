@@ -45,6 +45,7 @@
     group: redis
     mode: "0640"
   notify: Restart redis
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Enable and start Redis
   ansible.builtin.systemd:
