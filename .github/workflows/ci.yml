@@ -94,6 +94,10 @@ jobs:
           GRAFANA_ADMIN_PASSWORD: "ci-dummy"
           WAZUH_API_PASSWORD: "Ci-Dummy1!"
           WAZUH_ENROLLMENT_PASSWORD: "ci-dummy"
+          INFISICAL_DB_PASSWORD: "ci-dummy"
+          INFISICAL_ENCRYPTION_KEY: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+          INFISICAL_AUTH_SECRET: "ci-dummy-auth-secret"
+          INFISICAL_SITE_URL: "http://10.0.0.1:8080"
 
   # ── 3. Template rendering ──────────────────────────────────────────────
   # Renders every .j2 template with mock vars.
@@ -128,7 +132,8 @@ jobs:
             /tmp/rendered/prometheus.yml \
             /tmp/rendered/loki-config.yaml \
             /tmp/rendered/grafana-datasources.yaml \
-            /tmp/rendered/docker-compose.lgtm.yml
+            /tmp/rendered/docker-compose.lgtm.yml \
+            /tmp/rendered/docker-compose.infisical.yml
 
       - name: Show rendered Alloy configs
         run: |
