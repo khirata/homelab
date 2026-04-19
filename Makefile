@@ -1,4 +1,4 @@
-.PHONY: deploy check install-deps backup
+.PHONY: deploy check install-deps backup test
 
 -include .env
 export
@@ -29,3 +29,8 @@ check:
 ## Install required Ansible collections
 install-deps:
 	ansible-galaxy collection install -r ansible/requirements.yml
+
+## Run linters locally (requires: pip install yamllint ansible-lint)
+test:
+	yamllint .
+	ansible-lint $(PLAYBOOK)
