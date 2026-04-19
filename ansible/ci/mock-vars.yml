@@ -6,6 +6,7 @@
 # --- Host / network ---
 siem_server_ip: "10.0.0.1"
 siem_server_host: "siem.local"
+redis_server_ip: "10.0.0.4"
 fleet_node_1_ip: "10.0.0.2"
 fleet_node_2_ip: "10.0.0.3"
 inventory_hostname: "localhost"

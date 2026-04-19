@@ -89,6 +89,8 @@ jobs:
           SIEM_SERVER_IP: "10.0.0.1"
           SIEM_SERVER_HOST: "siem.local"
           SIEM_SERVER_USER: "ci"
+          REDIS_SERVER_IP: "10.0.0.4"
+          REDIS_SERVER_USER: "ci"
           FLEET_NODE_1_IP: "10.0.0.2"
           FLEET_NODE_2_IP: "10.0.0.3"
           GRAFANA_ADMIN_PASSWORD: "ci-dummy"
@@ -134,7 +136,6 @@ jobs:
             /tmp/rendered/loki-config.yaml \
             /tmp/rendered/grafana-datasources.yaml \
             /tmp/rendered/docker-compose.lgtm.yml \
-            /tmp/rendered/docker-compose.redis.yml \
             /tmp/rendered/docker-compose.infisical.yml
 
       - name: Show rendered Alloy configs

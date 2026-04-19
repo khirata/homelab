@@ -1,0 +1,10 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/redis/templates/redis.conf.j2
+
+bind {{ redis_bind }}
+port {{ redis_port }}
+requirepass {{ vault_redis_password }}
+
+# Persist to disk (AOF)
+appendonly yes
+appendfsync everysec

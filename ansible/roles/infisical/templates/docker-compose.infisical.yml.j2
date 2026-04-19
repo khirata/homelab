@@ -1,11 +1,8 @@
 ---
 # Managed by Ansible — do not edit manually.
 # Template: roles/infisical/templates/docker-compose.infisical.yml.j2
-
-networks:
-  siem:
-    external: true
-    name: siem
+# PostgreSQL: native on this host (via host.docker.internal)
+# Redis: native on redis_server ({{ redis_server_ip }}) — reachable via LAN
 
 services:
   db-migration:
@@ -13,8 +10,6 @@ services:
     container_name: infisical-migration
     env_file: "{{ siem_config_dir }}/infisical.env"
     command: npm run migration:latest
-    networks:
-      - siem
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -28,7 +23,5 @@ services:
     env_file: "{{ siem_config_dir }}/infisical.env"
     ports:
       - "{{ infisical_port }}:8080"
-    networks:
-      - siem
     extra_hosts:
       - "host.docker.internal:host-gateway"
