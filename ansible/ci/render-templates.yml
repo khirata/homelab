@@ -65,6 +65,12 @@
 
     # ── Infisical templates ───────────────────────────────────────────────
 
+    - name: Render docker-compose.redis.yml
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/redis/templates/docker-compose.redis.yml.j2"
+        dest: "{{ render_dir }}/docker-compose.redis.yml"
+        mode: "0644"
+
     - name: Render docker-compose.infisical.yml
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../roles/infisical/templates/docker-compose.infisical.yml.j2"

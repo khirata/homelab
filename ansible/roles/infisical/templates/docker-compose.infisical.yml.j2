@@ -2,12 +2,19 @@
 # Managed by Ansible — do not edit manually.
 # Template: roles/infisical/templates/docker-compose.infisical.yml.j2
 
+networks:
+  siem:
+    external: true
+    name: siem
+
 services:
   db-migration:
     image: infisical/infisical:{{ infisical_version }}
     container_name: infisical-migration
     env_file: "{{ siem_config_dir }}/infisical.env"
     command: npm run migration:latest
+    networks:
+      - siem
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -21,5 +28,7 @@ services:
     env_file: "{{ siem_config_dir }}/infisical.env"
     ports:
       - "{{ infisical_port }}:8080"
+    networks:
+      - siem
     extra_hosts:
       - "host.docker.internal:host-gateway"

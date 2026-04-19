@@ -1,6 +1,6 @@
 ---
 - name: Restart redis
-  ansible.builtin.systemd:
-    name: redis-server
-    state: restarted
+  ansible.builtin.command:
+    cmd: docker compose -f {{ siem_config_dir }}/docker-compose.redis.yml up -d
+  changed_when: true
   ignore_errors: "{{ ansible_check_mode }}"
