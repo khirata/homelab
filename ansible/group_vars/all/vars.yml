@@ -4,6 +4,7 @@
 # =============================================================================
 siem_server_ip: "{{ lookup('env', 'SIEM_SERVER_IP') }}"
 siem_server_host: "{{ lookup('env', 'SIEM_SERVER_HOST') }}"
+redis_server_ip: "{{ lookup('env', 'REDIS_SERVER_IP') }}"
 fleet_node_1_ip: "{{ lookup('env', 'FLEET_NODE_1_IP') }}"
 fleet_node_2_ip: "{{ lookup('env', 'FLEET_NODE_2_IP') }}"
 

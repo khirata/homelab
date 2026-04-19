@@ -1,4 +1,12 @@
 ---
+- name: Redis server (laf1, RPi4 — 4KB pages, jemalloc-safe)
+  hosts: redis_server
+  become: true
+  vars:
+    ansible_remote_tmp: /tmp
+  roles:
+    - redis
+
 - name: SIEM server
   hosts: siem_server
   become: true
@@ -7,7 +15,6 @@
   roles:
     - docker
     - postgresql  # shared infra — must run before infisical
-    - redis       # shared infra — must run before infisical
     - lgtm
     - wazuh_manager
     - alloy        # server mode: receives Unifi syslog on UDP/514
