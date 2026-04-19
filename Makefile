@@ -1,10 +1,17 @@
-.PHONY: deploy check install-deps backup test
+.PHONY: all clean deploy check install-deps backup test
 
 -include .env
 export
 
 PLAYBOOK   = ansible/site.yml
 INVENTORY  = ansible/inventory/hosts.ini
+
+## Default: dry-run check
+all: check
+
+## Remove locally rendered/cached files (nothing to clean in this repo)
+clean:
+	@echo "Nothing to clean."
 
 ## Trigger a PostgreSQL backup on the remote server
 backup:
