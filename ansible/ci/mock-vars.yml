@@ -45,7 +45,8 @@ prometheus_scrape_targets:
 # --- Vault variables (CI dummies — not real credentials) ---
 vault_grafana_admin_password: "ci-test-password"
 vault_wazuh_api_password: "Ci-Test-1!"
-vault_infisical_db_password: "ci-test-db-password"
+vault_postgresql_password: "ci-test-db-password"
+vault_redis_password: "ci-test-redis-password"
 vault_infisical_encryption_key: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
 vault_infisical_auth_secret: "ci-test-auth-secret-for-jwt-signing-only"
 infisical_site_url: "http://10.0.0.1:8080"
@@ -55,7 +56,7 @@ postgresql_version: "16"
 infisical_db_name: infisical
 infisical_db_user: infisical
 redis_port: 6379
-redis_bind: "127.0.0.1"
+redis_bind: "0.0.0.0"
 infisical_version: "v0.146.0-postgres"
 infisical_port: 8080
 

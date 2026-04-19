@@ -59,7 +59,7 @@
   ansible.builtin.command:
     cmd: >-
       psql -c "CREATE USER {{ infisical_db_user }}
-      WITH PASSWORD '{{ vault_infisical_db_password }}';"
+      WITH PASSWORD '{{ vault_postgresql_password }}';"
   become: true
   become_user: postgres
   when:
@@ -72,7 +72,7 @@
   ansible.builtin.command:
     cmd: >-
       psql -c "ALTER USER {{ infisical_db_user }}
-      WITH PASSWORD '{{ vault_infisical_db_password }}';"
+      WITH PASSWORD '{{ vault_postgresql_password }}';"
   become: true
   become_user: postgres
   when:
