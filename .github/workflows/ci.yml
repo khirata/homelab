@@ -89,6 +89,8 @@ jobs:
           SIEM_SERVER_IP: "10.0.0.1"
           SIEM_SERVER_HOST: "siem.local"
           SIEM_SERVER_USER: "ci"
+          POSTGRESQL_SERVER_IP: "10.0.0.1"
+          POSTGRESQL_SERVER_USER: "ci"
           REDIS_SERVER_IP: "10.0.0.4"
           REDIS_SERVER_USER: "ci"
           FLEET_NODE_1_IP: "10.0.0.2"
