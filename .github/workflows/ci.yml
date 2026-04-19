@@ -134,6 +134,7 @@ jobs:
             /tmp/rendered/loki-config.yaml \
             /tmp/rendered/grafana-datasources.yaml \
             /tmp/rendered/docker-compose.lgtm.yml \
+            /tmp/rendered/docker-compose.redis.yml \
             /tmp/rendered/docker-compose.infisical.yml
 
       - name: Show rendered Alloy configs

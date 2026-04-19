@@ -1,0 +1,27 @@
+---
+# Managed by Ansible — do not edit manually.
+# Template: roles/redis/templates/docker-compose.redis.yml.j2
+
+networks:
+  siem:
+    name: siem
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: {{ siem_data_dir }}/redis
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: redis-server --requirepass {{ vault_redis_password }}
+    networks:
+      - siem
+    volumes:
+      - redis_data:/data

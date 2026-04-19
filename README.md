@@ -310,7 +310,7 @@ Wazuh REST API  →  Grafana (API plugin)
 | Wazuh logs/rules/agents | `/var/ossec/` |
 | Alloy config | `/etc/alloy/config.alloy` |
 | PostgreSQL data | `/var/lib/postgresql/16/main/` |
-| Redis RDB snapshot | `/var/lib/redis/dump.rdb` |
+| Redis data | `/opt/siem/data/redis/` |
 | PostgreSQL backups | `/opt/siem/backups/postgresql/` |
 
 ---
