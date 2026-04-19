@@ -44,6 +44,31 @@
     state: started
   ignore_errors: "{{ ansible_check_mode }}"
 
+# ── Network access for Docker containers ──────────────────────────────────────
+# Infisical runs in Docker; it reaches PostgreSQL via host.docker.internal
+# (172.17.0.1 or similar). PostgreSQL must listen on all interfaces and
+# accept connections from the Docker bridge subnet.
+
+- name: Configure PostgreSQL to listen on all interfaces
+  ansible.builtin.copy:
+    content: "listen_addresses = '*'\n"
+    dest: "/etc/postgresql/{{ postgresql_version }}/main/conf.d/infisical.conf"
+    owner: postgres
+    group: postgres
+    mode: "0640"
+  notify: Restart postgresql
+
+- name: Allow Docker bridge network in pg_hba.conf
+  ansible.builtin.blockinfile:
+    path: "/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK — Docker bridge access"
+    block: |
+      host    {{ infisical_db_name }}    {{ infisical_db_user }}    172.0.0.0/8    scram-sha-256
+  notify: Restart postgresql
+
+- name: Flush handlers to restart PostgreSQL before DB provisioning
+  ansible.builtin.meta: flush_handlers
+
 # ── Database + user provisioning ──────────────────────────────────────────────
 
 - name: Check if infisical PostgreSQL role exists
