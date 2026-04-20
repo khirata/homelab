@@ -23,6 +23,7 @@
   become: true
   vars:
     ansible_remote_tmp: /tmp
+    alloy_pg_log_dir: /var/log/postgresql
   roles:
     - docker
     - lgtm
