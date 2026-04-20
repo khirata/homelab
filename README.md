@@ -10,16 +10,16 @@ in [dotconfig](https://github.com/khirata/dotconfig) as part of base node setup.
 
 ## Stack
 
-| Service | Role | Port |
-|---|---|---|
-| Grafana | Dashboards & alerting | 3000 |
-| Loki | Log aggregation | 3100 (internal) |
-| Prometheus | Metrics collection | 9090 (internal) |
-| Wazuh Manager | SIEM / security events | 1514, 1515, 55000 |
-| Grafana Alloy | Syslog receiver + node metrics | 12345, UDP/514 |
-| Infisical | Secret management | 8080 |
-| PostgreSQL | Shared database (Infisical) | 5432 (localhost only) |
-| Redis | Shared cache (Infisical) | 6379 (localhost only) |
+| Service | Role | Port | Host |
+|---|---|---|---|
+| Grafana (Docker) | Dashboards & alerting | 3000 | `$SIEM_SERVER_HOST` |
+| Loki (Docker) | Log aggregation | 3100 (internal) | `$SIEM_SERVER_HOST` |
+| Prometheus (Docker) | Metrics collection | 9090 (internal) | `$SIEM_SERVER_HOST` |
+| Wazuh Manager | SIEM / security events | 1514, 1515, 55000 | `$SIEM_SERVER_HOST` |
+| Grafana Alloy | Syslog receiver + node metrics | 12345, UDP/514 | `$SIEM_SERVER_HOST` |
+| Infisical (Docker) | Secret management | 8080 | `$SIEM_SERVER_HOST` |
+| PostgreSQL | Shared database (Infisical) | 5432 (localhost only) | `$POSTGRESQL_SERVER_IP` |
+| Redis | Shared cache (Infisical) | 6379 (localhost only) | `$REDIS_SERVER_IP` |
 
 ---
 
