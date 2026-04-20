@@ -39,6 +39,11 @@ wazuh_version: "4.14"
 # --- Alloy ---
 alloy_mode: server
 
+# --- SMTP ---
+smtp_host: "smtp.example.com:587"
+smtp_from: "noreply@example.com"
+smtp_starttls_policy: "MandatoryStartTLS"
+
 # --- Vault variables (CI dummies — not real credentials) ---
 vault_grafana_admin_password: "ci-test-password"
 vault_wazuh_api_password: "Ci-Test-1!"
