@@ -5,11 +5,3 @@ global:
   scrape_interval: 60s
   evaluation_interval: 60s
   scrape_timeout: 10s
-
-scrape_configs:
-  - job_name: alloy
-    static_configs:
-      - targets:
-{% for target in prometheus_scrape_targets %}
-          - "{{ target }}"
-{% endfor %}

@@ -6,10 +6,9 @@
 # --- Host / network ---
 siem_server_ip: "10.0.0.1"
 siem_server_host: "siem.local"
+node_name: "siem"
 postgresql_server_ip: "10.0.0.1"
 redis_server_ip: "10.0.0.4"
-fleet_node_1_ip: "10.0.0.2"
-fleet_node_2_ip: "10.0.0.3"
 inventory_hostname: "localhost"
 
 # --- Paths ---
@@ -37,12 +36,6 @@ wazuh_version: "4.10"
 
 # --- Alloy ---
 alloy_mode: server
-
-# --- Prometheus scrape targets ---
-prometheus_scrape_targets:
-  - "10.0.0.1:12345"
-  - "10.0.0.2:12345"
-  - "10.0.0.3:12345"
 
 # --- Vault variables (CI dummies — not real credentials) ---
 vault_grafana_admin_password: "ci-test-password"
