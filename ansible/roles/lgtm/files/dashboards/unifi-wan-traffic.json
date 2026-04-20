@@ -54,7 +54,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum(increase(unifi_site_wan_receive_bytes_total{site_name=~\"$site\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[$__range]))",
           "instant": false,
           "legendFormat": "WAN Downloaded",
           "refId": "A"
@@ -98,7 +98,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum(increase(unifi_site_wan_transmit_bytes_total{site_name=~\"$site\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[$__range]))",
           "instant": false,
           "legendFormat": "WAN Uploaded",
           "refId": "A"
@@ -142,7 +142,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum(increase(unifi_site_wan_receive_bytes_total{site_name=~\"$site\"}[$__range])) + sum(increase(unifi_site_wan_transmit_bytes_total{site_name=~\"$site\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[$__range]))",
           "instant": false,
           "legendFormat": "Total",
           "refId": "A"
@@ -186,7 +186,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum(rate(unifi_site_wan_receive_bytes_total{site_name=~\"$site\"}[5m])) * 8",
+          "expr": "sum(rate(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[5m])) * 8",
           "instant": true,
           "legendFormat": "Download",
           "refId": "A"
@@ -230,7 +230,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum(rate(unifi_site_wan_transmit_bytes_total{site_name=~\"$site\"}[5m])) * 8",
+          "expr": "sum(rate(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[5m])) * 8",
           "instant": true,
           "legendFormat": "Upload",
           "refId": "A"
@@ -300,14 +300,14 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum by (site_name)(rate(unifi_site_wan_receive_bytes_total{site_name=~\"$site\"}[5m])) * 8",
-          "legendFormat": "Download — {{site_name}}",
+          "expr": "sum by (name)(rate(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[5m])) * 8",
+          "legendFormat": "Download — {{name}}",
           "refId": "A"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum by (site_name)(rate(unifi_site_wan_transmit_bytes_total{site_name=~\"$site\"}[5m])) * 8",
-          "legendFormat": "Upload — {{site_name}}",
+          "expr": "sum by (name)(rate(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[5m])) * 8",
+          "legendFormat": "Upload — {{name}}",
           "refId": "B"
         }
       ],
@@ -361,16 +361,16 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum by (site_name)(increase(unifi_site_wan_receive_bytes_total{site_name=~\"$site\"}[$__interval]))",
+          "expr": "sum by (name)(increase(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[$__interval]))",
           "interval": "1d",
-          "legendFormat": "RX — {{site_name}}",
+          "legendFormat": "RX — {{name}}",
           "refId": "A"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum by (site_name)(increase(unifi_site_wan_transmit_bytes_total{site_name=~\"$site\"}[$__interval]))",
+          "expr": "sum by (name)(increase(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[$__interval]))",
           "interval": "1d",
-          "legendFormat": "TX — {{site_name}}",
+          "legendFormat": "TX — {{name}}",
           "refId": "B"
         }
       ],
@@ -386,15 +386,15 @@
       {
         "current": {},
         "datasource": {"type": "prometheus", "uid": "prometheus"},
-        "definition": "label_values(unifi_site_wan_receive_bytes_total, site_name)",
+        "definition": "label_values(unifi_device_wan_receive_bytes_total, source)",
         "hide": 0,
         "includeAll": true,
-        "label": "Site",
+        "label": "Device",
         "multi": true,
-        "name": "site",
+        "name": "source",
         "options": [],
         "query": {
-          "query": "label_values(unifi_site_wan_receive_bytes_total, site_name)",
+          "query": "label_values(unifi_device_wan_receive_bytes_total, source)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
