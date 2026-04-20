@@ -2,7 +2,7 @@
 
 Alloy runs in two modes:
 
-- **Server mode** (this repo) — receives Unifi syslog (UDP 514), ships to Loki; exposes self-metrics on port 12345
+- **Server mode** (this repo) — receives Unifi syslog (UDP 514), ships to Loki; exposes self-metrics on port 12345. See [unifi.md](unifi.md) for Unifi-specific setup.
 - **Node mode** (managed via [dotconfig](https://github.com/khirata/dotconfig)) — ships journal logs + node metrics from each monitored host
 
 ---
@@ -24,17 +24,6 @@ sudo journalctl -u alloy -f
 | Config | `/etc/alloy/config.alloy` |
 | Self-metrics | `http://<siem-host>:12345/metrics` |
 | UI (pipeline graph) | `http://<siem-host>:12345` |
-
----
-
-## Unifi Syslog
-
-Alloy server mode listens on UDP 514 and parses RFC3164 syslog from the Unifi gateway.
-
-To configure the Unifi controller:
-**Settings → System → Logging → Remote Syslog → `<SIEM_SERVER_IP>:514` UDP**
-
-Logs appear in Grafana → Explore → Loki → `{job="unifi"}`.
 
 ---
 
