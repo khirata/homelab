@@ -1,4 +1,20 @@
 ---
+- name: PostgreSQL server
+  hosts: postgresql_server
+  become: true
+  vars:
+    ansible_remote_tmp: /tmp
+  roles:
+    - postgresql
+
+- name: Redis server (laf1, RPi4 — 4KB pages, jemalloc-safe)
+  hosts: redis_server
+  become: true
+  vars:
+    ansible_remote_tmp: /tmp
+  roles:
+    - redis
+
 - name: SIEM server
   hosts: siem_server
   become: true
@@ -8,4 +24,5 @@
     - docker
     - lgtm
     - wazuh_manager
-    - alloy  # server mode: receives Unifi syslog on UDP/514
+    - alloy        # server mode: receives Unifi syslog on UDP/514
+    - infisical

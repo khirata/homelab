@@ -1,0 +1,4 @@
+---
+# Connection — pulled from .env at runtime
+ansible_host: "{{ lookup('env', 'REDIS_SERVER_IP') }}"
+ansible_user: "{{ lookup('env', 'REDIS_SERVER_USER') }}"

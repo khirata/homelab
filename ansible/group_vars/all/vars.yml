@@ -4,6 +4,8 @@
 # =============================================================================
 siem_server_ip: "{{ lookup('env', 'SIEM_SERVER_IP') }}"
 siem_server_host: "{{ lookup('env', 'SIEM_SERVER_HOST') }}"
+postgresql_server_ip: "{{ lookup('env', 'POSTGRESQL_SERVER_IP') }}"
+redis_server_ip: "{{ lookup('env', 'REDIS_SERVER_IP') }}"
 fleet_node_1_ip: "{{ lookup('env', 'FLEET_NODE_1_IP') }}"
 fleet_node_2_ip: "{{ lookup('env', 'FLEET_NODE_2_IP') }}"
 
@@ -12,6 +14,11 @@ fleet_node_2_ip: "{{ lookup('env', 'FLEET_NODE_2_IP') }}"
 # =============================================================================
 vault_grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') }}"
 vault_wazuh_api_password: "{{ lookup('env', 'WAZUH_API_PASSWORD') }}"
+vault_postgresql_password: "{{ lookup('env', 'POSTGRESQL_PASSWORD') }}"
+vault_redis_password: "{{ lookup('env', 'REDIS_PASSWORD') }}"
+vault_infisical_encryption_key: "{{ lookup('env', 'INFISICAL_ENCRYPTION_KEY') }}"
+vault_infisical_auth_secret: "{{ lookup('env', 'INFISICAL_AUTH_SECRET') }}"
+infisical_site_url: "{{ lookup('env', 'INFISICAL_SITE_URL') }}"
 
 # =============================================================================
 # Directory layout (safe to commit)
@@ -32,6 +39,8 @@ unifi_syslog_port_sak: 515
 wazuh_agent_port: 1514
 wazuh_enrollment_port: 1515
 wazuh_api_port: 55000
+infisical_port: 8080
+redis_port: 6379
 
 # =============================================================================
 # Image / package versions (safe to commit — bump here to upgrade)
@@ -41,3 +50,22 @@ loki_version: "3.4.2"
 prometheus_version: "v3.3.0"
 alloy_version: "1.7.5"
 wazuh_version: "4.10"
+infisical_version: "v0.146.0-postgres"
+postgresql_version: "16"
+
+# =============================================================================
+# PostgreSQL / Redis config (safe to commit)
+# =============================================================================
+infisical_db_name: infisical
+infisical_db_user: infisical
+redis_bind: "0.0.0.0"
+
+# =============================================================================
+# Backup config (safe to commit)
+# =============================================================================
+pg_backup_dir: /opt/siem/backups/postgresql
+pg_backup_retain_days: 14
+pg_backup_time: "02:00"
+pg_backup_offsite_enabled: false
+pg_backup_rclone_remote: ""
+pg_backup_rclone_bucket: ""

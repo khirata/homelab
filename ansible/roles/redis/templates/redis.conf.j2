@@ -1,0 +1,13 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/redis/templates/redis.conf.j2
+
+bind {{ redis_bind }}
+port {{ redis_port }}
+requirepass {{ vault_redis_password }}
+
+# Debian default data dir — redis user has write access
+dir /var/lib/redis
+
+# Persist to disk (AOF)
+appendonly yes
+appendfsync everysec
