@@ -27,3 +27,10 @@ check_for_plugin_updates = false
 
 [users]
 allow_sign_up = false
+
+[smtp]
+enabled = true
+host = smtp-relay.gmail.com:587
+from_address = {{ grafana_smtp_from }}
+from_name = Grafana Homelab
+startTLS_policy = MandatoryStartTLS
