@@ -1,0 +1,30 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/lgtm/templates/unpoller.conf.j2
+
+[poller]
+  debug    = false
+  quiet    = false
+
+[prometheus]
+  disable     = false
+  namespace   = "unifi"
+  http_listen = "0.0.0.0:{{ unpoller_port }}"
+
+[influxdb]
+  disable = true
+
+[unifi]
+  [unifi.defaults]
+    verify_ssl = false
+    save_sites = true
+    save_dpi   = false
+
+  [[unifi.controller]]
+    url  = "{{ unifi_controller_url_site1 }}"
+    user = "{{ vault_unifi_username_site1 }}"
+    pass = "{{ vault_unifi_password_site1 }}"
+
+  [[unifi.controller]]
+    url  = "{{ unifi_controller_url_site2 }}"
+    user = "{{ vault_unifi_username_site2 }}"
+    pass = "{{ vault_unifi_password_site2 }}"

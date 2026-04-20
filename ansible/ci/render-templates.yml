@@ -55,6 +55,18 @@
         dest: "{{ render_dir }}/grafana-datasources.yaml"
         mode: "0644"
 
+    - name: Render grafana-dashboard-provider.yaml
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/grafana-dashboard-provider.yaml.j2"
+        dest: "{{ render_dir }}/grafana-dashboard-provider.yaml"
+        mode: "0644"
+
+    - name: Render unpoller.conf
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/unpoller.conf.j2"
+        dest: "{{ render_dir }}/unpoller.conf"
+        mode: "0600"
+
     # ── Alloy templates ───────────────────────────────────────────────────
 
     - name: Render alloy-server.alloy (server mode)
