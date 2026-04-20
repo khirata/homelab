@@ -1,12 +1,30 @@
 # Configuration
 
-## Secrets
+All variables live in `.env` (copied from `.env.example`). Sourced at deploy time via
+`lookup('env', ...)` — never committed.
 
-Sourced from `.env` at deploy time via `lookup('env', ...)` — never committed.
+## Connection
+
+| Variable | Purpose |
+|---|---|
+| `SIEM_SERVER_IP` | LAN IP of the SIEM server |
+| `SIEM_SERVER_HOST` | Hostname of the SIEM server |
+| `SIEM_SERVER_USER` | SSH user on the SIEM server |
+| `POSTGRESQL_SERVER_IP` | LAN IP of the PostgreSQL host |
+| `POSTGRESQL_SERVER_USER` | SSH user on the PostgreSQL host |
+| `REDIS_SERVER_IP` | LAN IP of the Redis host |
+| `REDIS_SERVER_USER` | SSH user on the Redis host |
+
+---
+
+## Secrets
 
 | Variable | Used by |
 |---|---|
 | `GRAFANA_ADMIN_PASSWORD` | Grafana admin login |
+| `SMTP_HOST` | Grafana alerting — SMTP relay address and port (e.g. `smtp.example.com:587`) |
+| `SMTP_FROM` | Grafana alerting — sender address |
+| `SMTP_STARTTLS_POLICY` | Grafana alerting — `MandatoryStartTLS`, `OpportunisticStartTLS`, or `NoStartTLS` |
 | `WAZUH_API_PASSWORD` | Wazuh REST API (`wazuh` user) |
 | `POSTGRESQL_PASSWORD` | PostgreSQL `infisical` user |
 | `REDIS_PASSWORD` | Redis `requirepass` (binds to 0.0.0.0 for Docker access) |
@@ -16,15 +34,6 @@ Sourced from `.env` at deploy time via `lookup('env', ...)` — never committed.
 
 > **CRITICAL — `INFISICAL_ENCRYPTION_KEY`**: This key encrypts all secrets stored in Infisical.
 > If it changes, all stored secrets become unrecoverable. Back up your `.env` file securely.
-
----
-
-## Unifi Syslog
-
-Point your Unifi controller at the SIEM server:
-**Settings → System → Logging → Remote Syslog → `<SIEM_SERVER_IP>:514` UDP**
-
-Logs appear in Grafana → Explore → Loki → `{job="unifi"}`.
 
 ---
 
