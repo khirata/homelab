@@ -20,6 +20,12 @@ vault_redis_password: "{{ lookup('env', 'REDIS_PASSWORD') }}"
 vault_infisical_encryption_key: "{{ lookup('env', 'INFISICAL_ENCRYPTION_KEY') }}"
 vault_infisical_auth_secret: "{{ lookup('env', 'INFISICAL_AUTH_SECRET') }}"
 infisical_site_url: "{{ lookup('env', 'INFISICAL_SITE_URL') }}"
+unifi_controller_url_site1: "{{ lookup('env', 'UNIFI_CONTROLLER_URL_SITE1') }}"
+vault_unifi_username_site1: "{{ lookup('env', 'UNIFI_USERNAME_SITE1') }}"
+vault_unifi_password_site1: "{{ lookup('env', 'UNIFI_PASSWORD_SITE1') }}"
+unifi_controller_url_site2: "{{ lookup('env', 'UNIFI_CONTROLLER_URL_SITE2') }}"
+vault_unifi_username_site2: "{{ lookup('env', 'UNIFI_USERNAME_SITE2') }}"
+vault_unifi_password_site2: "{{ lookup('env', 'UNIFI_PASSWORD_SITE2') }}"
 
 # =============================================================================
 # Directory layout (safe to commit)
@@ -35,6 +41,7 @@ grafana_port: 3000
 prometheus_port: 9090
 loki_port: 3100
 alloy_ui_port: 12345
+unpoller_port: 9130
 unifi_syslog_port_laf: 514
 unifi_syslog_port_sak: 515
 wazuh_agent_port: 1514
@@ -50,6 +57,7 @@ grafana_version: "11.5.2"
 loki_version: "3.4.2"
 prometheus_version: "v3.3.0"
 alloy_version: "1.15.1"
+unpoller_version: "v2.11.2"
 wazuh_version: "4.14"
 infisical_version: "v0.146.0-postgres"
 postgresql_version: "16"

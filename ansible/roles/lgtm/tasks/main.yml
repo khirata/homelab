@@ -82,6 +82,33 @@
     mode: "0644"
   notify: Restart LGTM stack
 
+- name: Template Grafana dashboard provider
+  ansible.builtin.template:
+    src: grafana-dashboard-provider.yaml.j2
+    dest: "{{ siem_config_dir }}/grafana-provisioning/dashboards/provider.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart LGTM stack
+
+- name: Copy Grafana provisioned dashboards
+  ansible.builtin.copy:
+    src: dashboards/
+    dest: "{{ siem_config_dir }}/grafana-provisioning/dashboards/"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart LGTM stack
+
+- name: Template Unpoller env file
+  ansible.builtin.template:
+    src: unpoller.env.j2
+    dest: "{{ siem_config_dir }}/unpoller.env"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart LGTM stack
+
 - name: Pull and start LGTM stack
   ansible.builtin.command:
     cmd: docker compose -f {{ siem_config_dir }}/docker-compose.lgtm.yml up -d --pull always
