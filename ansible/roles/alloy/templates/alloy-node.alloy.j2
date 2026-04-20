@@ -65,6 +65,33 @@ loki.relabel "journal" {
   }
 }
 
+{% if alloy_pg_log_dir %}
+// ── PostgreSQL log files → Loki ─────────────────────────────────────────
+// logging_collector=on writes to files, bypassing the systemd journal.
+local.file_match "pg_logs" {
+  path_targets = [{"__path__" = "{{ alloy_pg_log_dir }}/*.log"}]
+}
+
+loki.source.file "pg_logs" {
+  targets    = local.file_match.pg_logs.targets
+  forward_to = [loki.relabel.pg_logs.receiver]
+}
+
+loki.relabel "pg_logs" {
+  forward_to = [loki.write.siem.receiver]
+
+  rule {
+    replacement  = "postgresql"
+    target_label = "job"
+  }
+
+  rule {
+    replacement  = "{{ inventory_hostname }}"
+    target_label = "instance"
+  }
+}
+{% endif %}
+
 // ── Loki write → siem ────────────────────────────────────────────────────
 loki.write "siem" {
   endpoint {

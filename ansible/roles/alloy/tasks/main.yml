@@ -76,6 +76,15 @@
     line: 'CUSTOM_ARGS="--server.http.listen-addr=0.0.0.0:{{ alloy_ui_port }}"'
   notify: Restart alloy
 
+- name: Add alloy user to docker group (server mode — Docker log collection)
+  ansible.builtin.user:
+    name: alloy
+    groups: docker
+    append: true
+  when: alloy_mode == 'server'
+  ignore_errors: "{{ ansible_check_mode }}"
+  notify: Restart alloy
+
 - name: Create systemd drop-in directory for Alloy
   ansible.builtin.file:
     path: /etc/systemd/system/alloy.service.d
