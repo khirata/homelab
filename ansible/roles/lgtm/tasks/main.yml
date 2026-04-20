@@ -100,10 +100,10 @@
     mode: "0644"
   notify: Restart LGTM stack
 
-- name: Template Unpoller env file
+- name: Template Unpoller config
   ansible.builtin.template:
-    src: unpoller.env.j2
-    dest: "{{ siem_config_dir }}/unpoller.env"
+    src: unpoller.conf.j2
+    dest: "{{ siem_config_dir }}/unpoller.conf"
     owner: root
     group: root
     mode: "0600"
