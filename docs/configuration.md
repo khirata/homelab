@@ -22,9 +22,9 @@ All variables live in `.env` (copied from `.env.example`). Sourced at deploy tim
 | Variable | Used by |
 |---|---|
 | `GRAFANA_ADMIN_PASSWORD` | Grafana admin login |
-| `SMTP_HOST` | Grafana alerting — SMTP relay address and port (e.g. `smtp.example.com:587`) |
-| `SMTP_FROM` | Grafana alerting — sender address |
-| `SMTP_STARTTLS_POLICY` | Grafana alerting — `MandatoryStartTLS`, `OpportunisticStartTLS`, or `NoStartTLS` |
+| `SMTP_HOST` | SMTP relay address and port (e.g. `smtp.example.com:587`) |
+| `SMTP_FROM` | Sender address |
+| `SMTP_STARTTLS_POLICY` | `MandatoryStartTLS`, `OpportunisticStartTLS`, or `NoStartTLS` <!-- TODO: verify if this is Grafana-specific or shared --> |
 | `WAZUH_API_PASSWORD` | Wazuh REST API (`wazuh` user) |
 | `POSTGRESQL_PASSWORD` | PostgreSQL `infisical` user |
 | `REDIS_PASSWORD` | Redis `requirepass` (binds to 0.0.0.0 for Docker access) |
