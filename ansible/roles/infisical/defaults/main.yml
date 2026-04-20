@@ -1,0 +1,8 @@
+---
+# Referenced from group_vars/all/vars.yml — listed here for role-level documentation.
+# Override in group_vars or host_vars if needed.
+
+# infisical_version: "v0.146.0-postgres"
+# infisical_port: 8080
+# infisical_db_name: infisical
+# infisical_db_user: infisical

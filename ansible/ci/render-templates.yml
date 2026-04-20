@@ -63,6 +63,26 @@
         dest: "{{ render_dir }}/alloy-server.alloy"
         mode: "0644"
 
+    # ── Redis / Infisical templates ───────────────────────────────────────
+
+    - name: Render redis.conf
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/redis/templates/redis.conf.j2"
+        dest: "{{ render_dir }}/redis.conf"
+        mode: "0644"
+
+    - name: Render docker-compose.infisical.yml
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/infisical/templates/docker-compose.infisical.yml.j2"
+        dest: "{{ render_dir }}/docker-compose.infisical.yml"
+        mode: "0644"
+
+    - name: Render pg-backup.sh
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/postgresql/templates/pg-backup.sh.j2"
+        dest: "{{ render_dir }}/pg-backup.sh"
+        mode: "0644"
+
     - name: List rendered files
       ansible.builtin.find:
         paths: "{{ render_dir }}"

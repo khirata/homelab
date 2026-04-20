@@ -1,0 +1,28 @@
+---
+- name: Create Infisical env file
+  ansible.builtin.template:
+    src: infisical.env.j2
+    dest: "{{ siem_config_dir }}/infisical.env"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart infisical stack
+
+- name: Template Infisical Docker Compose file
+  ansible.builtin.template:
+    src: docker-compose.infisical.yml.j2
+    dest: "{{ siem_config_dir }}/docker-compose.infisical.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart infisical stack
+
+- name: Pull and start Infisical stack
+  ansible.builtin.command:
+    cmd: docker compose -f {{ siem_config_dir }}/docker-compose.infisical.yml up -d --pull always
+  register: infisical_up
+  changed_when: >-
+    'Started' in infisical_up.stdout or
+    'Created' in infisical_up.stdout or
+    'Pulled' in infisical_up.stdout
+  ignore_errors: "{{ ansible_check_mode }}"

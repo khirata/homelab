@@ -1,0 +1,4 @@
+---
+# Connection — pulled from .env at runtime
+ansible_host: "{{ lookup('env', 'POSTGRESQL_SERVER_IP') }}"
+ansible_user: "{{ lookup('env', 'POSTGRESQL_SERVER_USER') }}"
