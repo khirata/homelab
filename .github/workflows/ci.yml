@@ -93,8 +93,6 @@ jobs:
           POSTGRESQL_SERVER_USER: "ci"
           REDIS_SERVER_IP: "10.0.0.4"
           REDIS_SERVER_USER: "ci"
-          FLEET_NODE_1_IP: "10.0.0.2"
-          FLEET_NODE_2_IP: "10.0.0.3"
           GRAFANA_ADMIN_PASSWORD: "ci-dummy"
           WAZUH_API_PASSWORD: "Ci-Dummy1!"
           WAZUH_ENROLLMENT_PASSWORD: "ci-dummy"
