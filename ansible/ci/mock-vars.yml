@@ -38,6 +38,7 @@ wazuh_version: "4.14"
 
 # --- Alloy ---
 alloy_mode: server
+alloy_pg_log_dir: /var/log/postgresql
 
 # --- SMTP ---
 smtp_host: "smtp.example.com:587"
