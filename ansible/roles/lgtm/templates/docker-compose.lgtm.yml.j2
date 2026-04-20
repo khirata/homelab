@@ -76,3 +76,12 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=30d
       - --web.enable-remote-write-receiver
+
+  unpoller:
+    image: ghcr.io/unpoller/unpoller:{{ unpoller_version }}
+    container_name: unpoller
+    restart: unless-stopped
+    networks:
+      - lgtm
+    env_file:
+      - {{ siem_config_dir }}/unpoller.env
