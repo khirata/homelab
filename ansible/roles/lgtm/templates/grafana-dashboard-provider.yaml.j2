@@ -1,0 +1,16 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/lgtm/templates/grafana-dashboard-provider.yaml.j2
+
+apiVersion: 1
+
+providers:
+  - name: homelab
+    orgId: 1
+    folder: Homelab
+    folderUid: homelab
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

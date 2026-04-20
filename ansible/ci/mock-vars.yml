@@ -23,6 +23,7 @@ loki_port: 3100
 alloy_ui_port: 12345
 unifi_syslog_port_laf: 514
 unifi_syslog_port_sak: 515
+unpoller_port: 9130
 wazuh_agent_port: 1514
 wazuh_enrollment_port: 1515
 wazuh_api_port: 55000
@@ -32,10 +33,16 @@ grafana_version: "11.5.2"
 loki_version: "3.4.2"
 prometheus_version: "v3.3.0"
 alloy_version: "1.15.1"
+unpoller_version: "v2.11.2"
 wazuh_version: "4.14"
 
 # --- Alloy ---
 alloy_mode: server
+
+# --- SMTP ---
+smtp_host: "smtp.example.com:587"
+smtp_from: "noreply@example.com"
+smtp_starttls_policy: "MandatoryStartTLS"
 
 # --- Vault variables (CI dummies — not real credentials) ---
 vault_grafana_admin_password: "ci-test-password"
@@ -45,6 +52,12 @@ vault_redis_password: "ci-test-redis-password"
 vault_infisical_encryption_key: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
 vault_infisical_auth_secret: "ci-test-auth-secret-for-jwt-signing-only"
 infisical_site_url: "http://10.0.0.1:8080"
+unifi_controller_url_site1: "https://10.0.1.1:443"
+vault_unifi_username_site1: "ci-unpoller"
+vault_unifi_password_site1: "ci-test-unifi-password"
+unifi_controller_url_site2: "https://10.0.11.1:443"
+vault_unifi_username_site2: "ci-unpoller"
+vault_unifi_password_site2: "ci-test-unifi-password"
 
 # --- PostgreSQL / Redis ---
 postgresql_version: "16"
