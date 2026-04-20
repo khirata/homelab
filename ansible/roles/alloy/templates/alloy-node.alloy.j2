@@ -15,8 +15,17 @@ prometheus.exporter.unix "node" {}
 
 prometheus.scrape "node" {
   targets    = prometheus.exporter.unix.node.targets
-  forward_to = [prometheus.remote_write.laf3.receiver]
+  forward_to = [prometheus.relabel.node_instance.receiver]
   job_name   = "node"
+}
+
+prometheus.relabel "node_instance" {
+  forward_to = [prometheus.remote_write.laf3.receiver]
+
+  rule {
+    target_label = "instance"
+    replacement  = "{{ inventory_hostname }}"
+  }
 }
 
 // ── Prometheus remote write → laf3 ──────────────────────────────────────
