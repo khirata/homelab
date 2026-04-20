@@ -2,3 +2,8 @@
 # "server" = SIEM server (syslog receiver + self metrics)
 # "node"   = remote nodes (journal + metrics → SIEM server)
 alloy_mode: node
+
+# Set to PostgreSQL log directory to enable file-based log collection.
+# Required because Debian PostgreSQL uses logging_collector (files), not journal.
+# Example: /var/log/postgresql
+alloy_pg_log_dir: ""

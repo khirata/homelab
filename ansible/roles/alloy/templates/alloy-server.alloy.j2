@@ -93,6 +93,33 @@ loki.relabel "journal" {
   }
 }
 
+// ── Docker container logs → Loki ────────────────────────────────────────
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+loki.source.docker "containers" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.containers.targets
+  forward_to    = [loki.relabel.docker_meta.receiver]
+  relabel_rules = loki.relabel.docker_meta.rules
+}
+
+loki.relabel "docker_meta" {
+  forward_to = [loki.write.siem.receiver]
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container_name"
+  }
+
+  rule {
+    replacement  = "docker"
+    target_label = "job"
+  }
+}
+
 // ── Loki write → local Loki ─────────────────────────────────────────────
 loki.write "siem" {
   endpoint {

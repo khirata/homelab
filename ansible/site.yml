@@ -4,8 +4,10 @@
   become: true
   vars:
     ansible_remote_tmp: /tmp
+    alloy_pg_log_dir: /var/log/postgresql
   roles:
     - postgresql
+    - alloy
 
 - name: Redis server
   hosts: redis_server
@@ -14,6 +16,7 @@
     ansible_remote_tmp: /tmp
   roles:
     - redis
+    - alloy
 
 - name: SIEM server
   hosts: siem_server
