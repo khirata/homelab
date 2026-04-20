@@ -1,13 +1,13 @@
 // Managed by Ansible — do not edit manually.
 // Template: roles/alloy/templates/alloy-server.alloy.j2
-// Mode: server (laf3) — exports local node metrics + receives Unifi syslog
+// Mode: server (siem) — exports local node metrics + receives Unifi syslog
 
 // ── Alloy UI / self-metrics ───────────────────────────────────────────────
 prometheus.exporter.self "alloy" {}
 
 prometheus.scrape "alloy_self" {
   targets    = prometheus.exporter.self.alloy.targets
-  forward_to = [prometheus.remote_write.laf3.receiver]
+  forward_to = [prometheus.remote_write.siem.receiver]
 }
 
 // ── Node metrics (via unix exporter) ────────────────────────────────────
@@ -24,7 +24,7 @@ prometheus.scrape "node" {
 }
 
 prometheus.relabel "node_instance" {
-  forward_to = [prometheus.remote_write.laf3.receiver]
+  forward_to = [prometheus.remote_write.siem.receiver]
 
   rule {
     target_label = "instance"
@@ -33,7 +33,7 @@ prometheus.relabel "node_instance" {
 }
 
 // ── Prometheus remote write → local Prometheus ──────────────────────────
-prometheus.remote_write "laf3" {
+prometheus.remote_write "siem" {
   endpoint {
     url = "http://localhost:{{ prometheus_port }}/api/v1/write"
   }
@@ -50,7 +50,7 @@ loki.source.syslog "unifi_laf" {
     syslog_format = "rfc3164"  // Unifi sends BSD syslog, not RFC5424
     labels        = { job = "unifi", site = "lafayette" }
   }
-  forward_to = [loki.write.laf3.receiver]
+  forward_to = [loki.write.siem.receiver]
 }
 
 loki.source.syslog "unifi_sak" {
@@ -60,12 +60,12 @@ loki.source.syslog "unifi_sak" {
     syslog_format = "rfc3164"
     labels        = { job = "unifi", site = "sakamoto" }
   }
-  forward_to = [loki.write.laf3.receiver]
+  forward_to = [loki.write.siem.receiver]
 }
 
 // ── Systemd journal → Loki ──────────────────────────────────────────────
 loki.source.journal "systemd" {
-  forward_to    = [loki.write.laf3.receiver]
+  forward_to    = [loki.write.siem.receiver]
   relabel_rules = loki.relabel.journal.rules
 }
 
@@ -94,7 +94,7 @@ loki.relabel "journal" {
 }
 
 // ── Loki write → local Loki ─────────────────────────────────────────────
-loki.write "laf3" {
+loki.write "siem" {
   endpoint {
     url = "http://localhost:{{ loki_port }}/loki/api/v1/push"
   }

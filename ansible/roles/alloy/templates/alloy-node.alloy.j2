@@ -1,13 +1,13 @@
 // Managed by Ansible — do not edit manually.
 // Template: roles/alloy/templates/alloy-node.alloy.j2
-// Mode: node — ships systemd journal logs and node metrics to laf3
+// Mode: node — ships systemd journal logs and node metrics to siem
 
 // ── Alloy UI / self-metrics ───────────────────────────────────────────────
 prometheus.exporter.self "alloy" {}
 
 prometheus.scrape "alloy_self" {
   targets    = prometheus.exporter.self.alloy.targets
-  forward_to = [prometheus.remote_write.laf3.receiver]
+  forward_to = [prometheus.remote_write.siem.receiver]
 }
 
 // ── Node metrics (via unix exporter) ────────────────────────────────────
@@ -20,7 +20,7 @@ prometheus.scrape "node" {
 }
 
 prometheus.relabel "node_instance" {
-  forward_to = [prometheus.remote_write.laf3.receiver]
+  forward_to = [prometheus.remote_write.siem.receiver]
 
   rule {
     target_label = "instance"
@@ -28,8 +28,8 @@ prometheus.relabel "node_instance" {
   }
 }
 
-// ── Prometheus remote write → laf3 ──────────────────────────────────────
-prometheus.remote_write "laf3" {
+// ── Prometheus remote write → siem ──────────────────────────────────────
+prometheus.remote_write "siem" {
   endpoint {
     url = "http://{{ siem_server_ip }}:{{ prometheus_port }}/api/v1/write"
   }
@@ -37,7 +37,7 @@ prometheus.remote_write "laf3" {
 
 // ── Systemd journal → Loki ──────────────────────────────────────────────
 loki.source.journal "systemd" {
-  forward_to = [loki.write.laf3.receiver]
+  forward_to = [loki.write.siem.receiver]
   relabel_rules = loki.relabel.journal.rules
 }
 
@@ -65,8 +65,8 @@ loki.relabel "journal" {
   }
 }
 
-// ── Loki write → laf3 ────────────────────────────────────────────────────
-loki.write "laf3" {
+// ── Loki write → siem ────────────────────────────────────────────────────
+loki.write "siem" {
   endpoint {
     url = "http://{{ siem_server_ip }}:{{ loki_port }}/loki/api/v1/push"
   }
