@@ -11,7 +11,9 @@ redis_server_ip: "{{ lookup('env', 'REDIS_SERVER_IP') }}"
 # Secrets — sourced from .env (never committed)
 # =============================================================================
 vault_grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') }}"
-grafana_smtp_from: "{{ lookup('env', 'GRAFANA_SMTP_FROM') }}"
+smtp_host: "{{ lookup('env', 'SMTP_HOST') }}"
+smtp_from: "{{ lookup('env', 'SMTP_FROM') }}"
+smtp_starttls_policy: "{{ lookup('env', 'SMTP_STARTTLS_POLICY') }}"
 vault_wazuh_api_password: "{{ lookup('env', 'WAZUH_API_PASSWORD') }}"
 vault_postgresql_password: "{{ lookup('env', 'POSTGRESQL_PASSWORD') }}"
 vault_redis_password: "{{ lookup('env', 'REDIS_PASSWORD') }}"
