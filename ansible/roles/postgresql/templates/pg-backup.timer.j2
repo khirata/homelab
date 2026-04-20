@@ -1,0 +1,12 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/postgresql/templates/pg-backup.timer.j2
+
+[Unit]
+Description=Daily PostgreSQL backup timer
+
+[Timer]
+OnCalendar=*-*-* {{ pg_backup_time }}:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -17,6 +17,9 @@ in [dotconfig](https://github.com/khirata/dotconfig) as part of base node setup.
 | Prometheus | Metrics collection | 9090 (internal) |
 | Wazuh Manager | SIEM / security events | 1514, 1515, 55000 |
 | Grafana Alloy | Syslog receiver + node metrics | 12345, UDP/514 |
+| Infisical | Secret management | 8080 |
+| PostgreSQL | Shared database (Infisical) | 5432 (localhost only) |
+| Redis | Shared cache (Infisical) | 6379 (localhost only) |
 
 ---
 
@@ -306,26 +309,28 @@ Wazuh REST API  →  Grafana (API plugin)
 | Compose + all configs | `/opt/siem/config/` |
 | Wazuh logs/rules/agents | `/var/ossec/` |
 | Alloy config | `/etc/alloy/config.alloy` |
+| PostgreSQL data | `/var/lib/postgresql/16/main/` |
+| Redis data | `/opt/siem/data/redis/` |
+| PostgreSQL backups | `/opt/siem/backups/postgresql/` |
 
 ---
 
 ### Secrets
 
-Stored in `ansible/group_vars/all/vault.yml` — **must be encrypted** before committing.
-
-```bash
-# First-time: edit then encrypt
-ansible-vault encrypt ansible/group_vars/all/vault.yml
-
-# Edit later
-ansible-vault edit ansible/group_vars/all/vault.yml
-```
+Sourced from `.env` at deploy time via `lookup('env', ...)` — never committed.
 
 | Variable | Used by |
 |---|---|
-| `vault_grafana_admin_password` | Grafana admin login |
-| `vault_wazuh_api_password` | Wazuh REST API (`wazuh` user) |
-| `vault_wazuh_enrollment_password` | Wazuh agent auto-enrollment |
+| `GRAFANA_ADMIN_PASSWORD` | Grafana admin login |
+| `WAZUH_API_PASSWORD` | Wazuh REST API (`wazuh` user) |
+| `POSTGRESQL_PASSWORD` | PostgreSQL `infisical` user |
+| `REDIS_PASSWORD` | Redis `requirepass` (binds to 0.0.0.0 for Docker access) |
+| `INFISICAL_ENCRYPTION_KEY` | Infisical at-rest secret encryption (64-char hex) |
+| `INFISICAL_AUTH_SECRET` | Infisical JWT signing |
+| `INFISICAL_SITE_URL` | Infisical cookie/CORS origin (e.g. `http://10.x.x.x:8080`) |
+
+> **CRITICAL — `INFISICAL_ENCRYPTION_KEY`**: This key encrypts all secrets stored in Infisical.
+> If it changes, all stored secrets become unrecoverable. Back up your `.env` file securely.
 
 ---
 
@@ -340,6 +345,19 @@ sudo docker compose -f docker-compose.lgtm.yml ps
 sudo docker compose -f docker-compose.lgtm.yml logs -f grafana
 sudo docker compose -f docker-compose.lgtm.yml restart
 
+# Infisical Docker stack
+sudo docker compose -f /opt/siem/config/docker-compose.infisical.yml ps
+sudo docker compose -f /opt/siem/config/docker-compose.infisical.yml logs -f infisical
+
+# PostgreSQL
+sudo systemctl status postgresql@16-main
+sudo -u postgres psql -c '\l'       # list databases
+sudo -u postgres psql infisical     # connect to infisical DB
+
+# Redis
+sudo systemctl status redis-server
+redis-cli ping                      # should return PONG
+
 # Wazuh Manager
 sudo systemctl status wazuh-manager
 sudo journalctl -u wazuh-manager -f
@@ -347,6 +365,13 @@ sudo journalctl -u wazuh-manager -f
 # Alloy (server mode)
 sudo systemctl status alloy
 sudo journalctl -u alloy -f
+
+# PostgreSQL backup (manual trigger)
+sudo systemctl start pg-backup.service
+sudo journalctl -u pg-backup -n 50 --no-pager
+
+# Or from local machine:
+make backup
 
 # Verify Wazuh agent registration
 sudo /var/ossec/bin/agent_control -l
@@ -357,8 +382,44 @@ sudo /var/ossec/bin/agent_control -l
 | Grafana | `docker compose logs grafana` or `/opt/siem/data/grafana/grafana.log` |
 | Loki | `docker compose logs loki` |
 | Prometheus | `docker compose logs prometheus` |
+| Infisical | `docker compose -f .../docker-compose.infisical.yml logs infisical` |
+| PostgreSQL | `journalctl -u postgresql@16-main` |
+| Redis | `/var/log/redis/redis-server.log` |
+| pg-backup | `journalctl -u pg-backup` |
 | Wazuh Manager | `/var/ossec/logs/ossec.log` |
 | Alloy | `journalctl -u alloy` |
+
+### Infisical — First Run
+
+After deploying, create the initial admin account via the web UI:
+
+1. Open `http://<siem-host>:8080` in a browser
+2. Click **Sign up** and register the first admin user
+3. Create an organization and project
+4. Add secrets via the UI or Infisical CLI (`infisical secrets set`)
+
+### Infisical — Upgrading
+
+Bump `infisical_version` in `ansible/group_vars/all/vars.yml`, then:
+
+```bash
+# 1. Snapshot the database first
+make backup
+
+# 2. Deploy (pulls new image, runs db-migration, restarts)
+make deploy
+```
+
+If migration fails, restore from the pre-upgrade snapshot:
+
+```bash
+# List available snapshots
+ls /opt/siem/backups/postgresql/
+
+# Restore (run on siem-host as root)
+sudo -u postgres pg_restore -d infisical -c \
+  /opt/siem/backups/postgresql/<timestamp>_infisical.pgdump
+```
 
 ---
 
