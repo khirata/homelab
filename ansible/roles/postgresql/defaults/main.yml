@@ -1,0 +1,13 @@
+---
+# Referenced from group_vars/all/vars.yml — listed here for role-level documentation.
+# Override in group_vars or host_vars if needed.
+
+# postgresql_version: "16"
+# infisical_db_name: infisical
+# infisical_db_user: infisical
+# pg_backup_dir: /opt/siem/backups/postgresql
+# pg_backup_retain_days: 14
+# pg_backup_time: "02:00"
+# pg_backup_offsite_enabled: false
+# pg_backup_rclone_remote: ""
+# pg_backup_rclone_bucket: ""

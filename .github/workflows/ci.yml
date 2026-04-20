@@ -6,11 +6,30 @@ on:
     branches:
       - main
       - "feat/**"
+      - "claude/**"
   pull_request:
     branches:
       - main
 
 jobs:
+  # ── 0. Makefile lint ───────────────────────────────────────────────────
+  makefile-lint:
+    name: Makefile lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+          cache: false
+
+      - name: Install checkmake
+        run: go install github.com/checkmake/checkmake/cmd/checkmake@latest
+
+      - name: checkmake
+        run: checkmake Makefile
+
   # ── 1. Lint ────────────────────────────────────────────────────────────
   lint:
     name: Lint
@@ -70,11 +89,20 @@ jobs:
           SIEM_SERVER_IP: "10.0.0.1"
           SIEM_SERVER_HOST: "siem.local"
           SIEM_SERVER_USER: "ci"
+          POSTGRESQL_SERVER_IP: "10.0.0.1"
+          POSTGRESQL_SERVER_USER: "ci"
+          REDIS_SERVER_IP: "10.0.0.4"
+          REDIS_SERVER_USER: "ci"
           FLEET_NODE_1_IP: "10.0.0.2"
           FLEET_NODE_2_IP: "10.0.0.3"
           GRAFANA_ADMIN_PASSWORD: "ci-dummy"
           WAZUH_API_PASSWORD: "Ci-Dummy1!"
           WAZUH_ENROLLMENT_PASSWORD: "ci-dummy"
+          POSTGRESQL_PASSWORD: "ci-dummy"
+          REDIS_PASSWORD: "ci-dummy-redis"
+          INFISICAL_ENCRYPTION_KEY: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+          INFISICAL_AUTH_SECRET: "ci-dummy-auth-secret"
+          INFISICAL_SITE_URL: "http://10.0.0.1:8080"
 
   # ── 3. Template rendering ──────────────────────────────────────────────
   # Renders every .j2 template with mock vars.
@@ -109,7 +137,8 @@ jobs:
             /tmp/rendered/prometheus.yml \
             /tmp/rendered/loki-config.yaml \
             /tmp/rendered/grafana-datasources.yaml \
-            /tmp/rendered/docker-compose.lgtm.yml
+            /tmp/rendered/docker-compose.lgtm.yml \
+            /tmp/rendered/docker-compose.infisical.yml
 
       - name: Show rendered Alloy configs
         run: |
