@@ -11,7 +11,11 @@ prometheus.scrape "alloy_self" {
 }
 
 // ── Node metrics (via unix exporter) ────────────────────────────────────
-prometheus.exporter.unix "node" {}
+prometheus.exporter.unix "node" {
+  textfile {
+    directory = "/var/lib/node_exporter/textfile_collector"
+  }
+}
 
 prometheus.scrape "node" {
   targets    = prometheus.exporter.unix.node.targets
