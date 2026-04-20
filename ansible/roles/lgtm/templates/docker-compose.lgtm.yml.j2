@@ -83,5 +83,5 @@ services:
     restart: unless-stopped
     networks:
       - lgtm
-    env_file:
-      - {{ siem_config_dir }}/unpoller.env
+    volumes:
+      - {{ siem_config_dir }}/unpoller.conf:/etc/unpoller/up.conf:ro
