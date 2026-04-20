@@ -36,7 +36,7 @@
     state: present
     update_cache: true
 
-- name: Template Alloy config (server mode — laf3)
+- name: Template Alloy config (server mode)
   ansible.builtin.template:
     src: alloy-server.alloy.j2
     dest: /etc/alloy/config.alloy

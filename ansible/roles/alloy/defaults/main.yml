@@ -1,4 +1,4 @@
 ---
-# "server" = laf3 (syslog receiver + self metrics)
-# "node"   = remote nodes (journal + metrics → laf3)
+# "server" = SIEM server (syslog receiver + self metrics)
+# "node"   = remote nodes (journal + metrics → SIEM server)
 alloy_mode: node

@@ -7,7 +7,7 @@
   roles:
     - postgresql
 
-- name: Redis server (laf1, RPi4 — 4KB pages, jemalloc-safe)
+- name: Redis server
   hosts: redis_server
   become: true
   vars:
