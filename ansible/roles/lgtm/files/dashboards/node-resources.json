@@ -62,8 +62,7 @@
             "steps": [{"color": "green", "value": null}]
           },
           "unit": "percent",
-          "min": 0,
-          "max": 100
+          "min": 0
         },
         "overrides": [
           {
@@ -497,7 +496,7 @@
           "query": "label_values(node_disk_read_bytes_total{instance=~\"$instance\"}, device)",
           "refId": "StandardVariableQuery"
         },
-        "refresh": 2,
+        "refresh": 1,
         "regex": "/^(?!loop|ram|sr).*$/",
         "sort": 1,
         "type": "query"
@@ -516,7 +515,7 @@
           "query": "label_values(node_network_receive_bytes_total{instance=~\"$instance\"}, device)",
           "refId": "StandardVariableQuery"
         },
-        "refresh": 2,
+        "refresh": 1,
         "regex": "/^(?!lo$|docker|veth|br-|flannel).*$/",
         "sort": 1,
         "type": "query"

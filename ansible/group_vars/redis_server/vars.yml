@@ -2,3 +2,6 @@
 # Connection — pulled from .env at runtime
 ansible_host: "{{ lookup('env', 'REDIS_SERVER_IP') }}"
 ansible_user: "{{ lookup('env', 'REDIS_SERVER_USER') }}"
+
+# RPi textfile metrics — rpi-metrics writes to this directory
+alloy_textfile_dir: /var/lib/node_exporter/textfile_collector
