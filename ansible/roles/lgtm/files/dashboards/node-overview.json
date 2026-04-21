@@ -76,9 +76,9 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "100 - avg by (instance)(rate(node_cpu_seconds_total{mode=\"idle\", instance=~\"$instance\"}[5m])) * 100",
+          "expr": "(100 - avg by (instance)(rate(node_cpu_seconds_total{mode=\"idle\", instance=~\"$instance\"}[5m])) * 100) * on(instance) group_left(nodename) node_uname_info",
           "instant": true,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],
@@ -122,9 +122,9 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "(1 - node_memory_MemAvailable_bytes{instance=~\"$instance\"} / node_memory_MemTotal_bytes{instance=~\"$instance\"}) * 100",
+          "expr": "((1 - node_memory_MemAvailable_bytes{instance=~\"$instance\"} / node_memory_MemTotal_bytes{instance=~\"$instance\"}) * 100) * on(instance) group_left(nodename) node_uname_info",
           "instant": true,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],
@@ -168,9 +168,9 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "max by (instance)((1 - node_filesystem_avail_bytes{instance=~\"$instance\", fstype!~\"tmpfs|devtmpfs|overlay\"} / node_filesystem_size_bytes{instance=~\"$instance\", fstype!~\"tmpfs|devtmpfs|overlay\"}) * 100)",
+          "expr": "max by (instance)((1 - node_filesystem_avail_bytes{instance=~\"$instance\", fstype!~\"tmpfs|devtmpfs|overlay\"} / node_filesystem_size_bytes{instance=~\"$instance\", fstype!~\"tmpfs|devtmpfs|overlay\"}) * 100) * on(instance) group_left(nodename) node_uname_info",
           "instant": true,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],
@@ -210,9 +210,9 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "time() - node_boot_time_seconds{instance=~\"$instance\"}",
+          "expr": "(time() - node_boot_time_seconds{instance=~\"$instance\"}) * on(instance) group_left(nodename) node_uname_info",
           "instant": true,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],
@@ -279,8 +279,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "100 - avg by (instance)(rate(node_cpu_seconds_total{mode=\"idle\", instance=~\"$instance\"}[5m])) * 100",
-          "legendFormat": "{{instance}}",
+          "expr": "(100 - avg by (instance)(rate(node_cpu_seconds_total{mode=\"idle\", instance=~\"$instance\"}[5m])) * 100) * on(instance) group_left(nodename) node_uname_info",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],
@@ -334,8 +334,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "node_memory_MemAvailable_bytes{instance=~\"$instance\"}",
-          "legendFormat": "{{instance}}",
+          "expr": "node_memory_MemAvailable_bytes{instance=~\"$instance\"} * on(instance) group_left(nodename) node_uname_info",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],

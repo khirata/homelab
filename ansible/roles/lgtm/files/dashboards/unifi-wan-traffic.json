@@ -632,7 +632,7 @@
     ]
   },
   "time": {
-    "from": "now/M",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
