@@ -1,7 +1,7 @@
 # homelab
 
-Home lab infrastructure — SIEM server running Wazuh Manager + Grafana LGTM stack
-on a Raspberry Pi 5.
+Home lab infrastructure - SIEM server running Wazuh Manager + Grafana LGTM stack,
+DB servers, Secret manager
 
 Node-level agents (Wazuh Agent, Grafana Alloy node mode) are managed separately
 in [dotconfig](https://github.com/khirata/dotconfig) as part of base node setup.
