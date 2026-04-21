@@ -62,9 +62,9 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "rpi_throttled_now{instance=~\"$instance\"}",
+          "expr": "rpi_throttled_now * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "instant": true,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],
@@ -107,9 +107,9 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "rpi_undervoltage_detected{instance=~\"$instance\"}",
+          "expr": "rpi_undervoltage_detected * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "instant": true,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],
@@ -152,9 +152,9 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "rpi_freq_capped{instance=~\"$instance\"}",
+          "expr": "rpi_freq_capped * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "instant": true,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],
@@ -197,9 +197,9 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "rpi_throttled_occurred{instance=~\"$instance\"}",
+          "expr": "rpi_throttled_occurred * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "instant": true,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],
@@ -249,9 +249,9 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "rpi_temperature_celsius{instance=~\"$instance\"}",
+          "expr": "rpi_temperature_celsius * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "instant": true,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],
@@ -310,8 +310,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "rpi_temperature_celsius{instance=~\"$instance\"}",
-          "legendFormat": "{{instance}}",
+          "expr": "rpi_temperature_celsius * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
+          "legendFormat": "{{nodename}}",
           "refId": "A"
         }
       ],
@@ -366,14 +366,14 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "rpi_clock_hz{instance=~\"$instance\", clock=\"arm\"} / 1e6",
-          "legendFormat": "arm — {{instance}}",
+          "expr": "rpi_clock_hz{clock=\"arm\"} / 1e6 * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
+          "legendFormat": "arm — {{nodename}}",
           "refId": "A"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "rpi_clock_hz{instance=~\"$instance\", clock=\"core\"} / 1e6",
-          "legendFormat": "core — {{instance}}",
+          "expr": "rpi_clock_hz{clock=\"core\"} / 1e6 * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
+          "legendFormat": "core — {{nodename}}",
           "refId": "B"
         }
       ],
@@ -428,8 +428,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "rpi_voltage_volts{instance=~\"$instance\"}",
-          "legendFormat": "{{component}} — {{instance}}",
+          "expr": "rpi_voltage_volts * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
+          "legendFormat": "{{component}} — {{nodename}}",
           "refId": "A"
         }
       ],
@@ -445,7 +445,7 @@
       {
         "current": {},
         "datasource": {"type": "prometheus", "uid": "prometheus"},
-        "definition": "label_values(rpi_temperature_celsius, instance)",
+        "definition": "label_values(node_uname_info, nodename)",
         "hide": 0,
         "includeAll": true,
         "label": "Node",
@@ -453,7 +453,7 @@
         "name": "instance",
         "options": [],
         "query": {
-          "query": "label_values(rpi_temperature_celsius, instance)",
+          "query": "label_values(node_uname_info, nodename)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
