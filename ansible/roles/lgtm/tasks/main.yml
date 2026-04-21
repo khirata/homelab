@@ -98,7 +98,7 @@
     owner: root
     group: root
     mode: "0644"
-  notify: Restart LGTM stack
+  tags: [dashboards]
 
 - name: Template Unpoller config
   ansible.builtin.template:
