@@ -11,7 +11,13 @@ prometheus.scrape "alloy_self" {
 }
 
 // ── Node metrics (via unix exporter) ────────────────────────────────────
-prometheus.exporter.unix "node" {}
+prometheus.exporter.unix "node" {
+{% if alloy_textfile_dir is defined and alloy_textfile_dir %}
+  textfile {
+    directory = "{{ alloy_textfile_dir }}"
+  }
+{% endif %}
+}
 
 prometheus.scrape "node" {
   targets    = prometheus.exporter.unix.node.targets

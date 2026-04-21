@@ -7,3 +7,8 @@ alloy_mode: node
 # Required because Debian PostgreSQL uses logging_collector (files), not journal.
 # Example: /var/log/postgresql
 alloy_pg_log_dir: ""
+
+# Set to the textfile collector directory to enable RPi / custom metrics.
+# The prometheus_exporter_unix textfile block reads *.prom files from this path.
+# Example: /var/lib/node_exporter/textfile_collector
+alloy_textfile_dir: ""
