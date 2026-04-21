@@ -22,6 +22,10 @@ backup:
 deploy: _pre-deploy-backup
 	ansible-playbook $(PLAYBOOK) -i $(INVENTORY)
 
+## Deploy only Grafana dashboards (no stack restart)
+deploy-dashboards:
+	ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --tags dashboards
+
 _pre-deploy-backup:
 	@ssh $(SIEM_SERVER_USER)@$(SIEM_SERVER_IP) \
 	  "systemctl list-units --type=service --all | grep -q pg-backup.service \
