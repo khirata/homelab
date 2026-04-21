@@ -93,7 +93,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "avg by (mode)(rate(node_cpu_seconds_total{instance=~\"$instance\", mode!=\"idle\"}[5m])) * 100",
+          "expr": "avg by (mode)(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m]) * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}) * 100",
           "legendFormat": "{{mode}}",
           "refId": "A"
         }
@@ -149,19 +149,19 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "node_load1{instance=~\"$instance\"}",
+          "expr": "node_load1 * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "legendFormat": "1m",
           "refId": "A"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "node_load5{instance=~\"$instance\"}",
+          "expr": "node_load5 * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "legendFormat": "5m",
           "refId": "B"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "node_load15{instance=~\"$instance\"}",
+          "expr": "node_load15 * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "legendFormat": "15m",
           "refId": "C"
         }
@@ -234,25 +234,25 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "node_memory_MemTotal_bytes{instance=~\"$instance\"} - node_memory_MemFree_bytes{instance=~\"$instance\"} - node_memory_Buffers_bytes{instance=~\"$instance\"} - node_memory_Cached_bytes{instance=~\"$instance\"}",
+          "expr": "(node_memory_MemTotal_bytes - node_memory_MemFree_bytes - node_memory_Buffers_bytes - node_memory_Cached_bytes) * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "legendFormat": "used",
           "refId": "A"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "node_memory_Buffers_bytes{instance=~\"$instance\"}",
+          "expr": "node_memory_Buffers_bytes * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "legendFormat": "buffers",
           "refId": "B"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "node_memory_Cached_bytes{instance=~\"$instance\"}",
+          "expr": "node_memory_Cached_bytes * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "legendFormat": "cached",
           "refId": "C"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "node_memory_MemFree_bytes{instance=~\"$instance\"}",
+          "expr": "node_memory_MemFree_bytes * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "legendFormat": "free",
           "refId": "D"
         }
@@ -321,13 +321,13 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum by (device)(rate(node_disk_read_bytes_total{instance=~\"$instance\", device=~\"$disk\"}[5m]))",
+          "expr": "sum by (device)(rate(node_disk_read_bytes_total{device=~\"$disk\"}[5m]) * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"})",
           "legendFormat": "read — {{device}}",
           "refId": "A"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum by (device)(rate(node_disk_written_bytes_total{instance=~\"$instance\", device=~\"$disk\"}[5m]))",
+          "expr": "sum by (device)(rate(node_disk_written_bytes_total{device=~\"$disk\"}[5m]) * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"})",
           "legendFormat": "write — {{device}}",
           "refId": "B"
         }
@@ -373,7 +373,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "(node_filesystem_size_bytes{instance=~\"$instance\", fstype!~\"tmpfs|devtmpfs|overlay\"} - node_filesystem_avail_bytes{instance=~\"$instance\", fstype!~\"tmpfs|devtmpfs|overlay\"}) / node_filesystem_size_bytes{instance=~\"$instance\", fstype!~\"tmpfs|devtmpfs|overlay\"}",
+          "expr": "((node_filesystem_size_bytes{fstype!~\"tmpfs|devtmpfs|overlay\"} - node_filesystem_avail_bytes{fstype!~\"tmpfs|devtmpfs|overlay\"}) / node_filesystem_size_bytes{fstype!~\"tmpfs|devtmpfs|overlay\"}) * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}",
           "instant": true,
           "legendFormat": "{{mountpoint}}",
           "refId": "A"
@@ -443,13 +443,13 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum by (device)(rate(node_network_receive_bytes_total{instance=~\"$instance\", device=~\"$interface\"}[5m])) * 8",
+          "expr": "sum by (device)(rate(node_network_receive_bytes_total{device=~\"$interface\"}[5m]) * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}) * 8",
           "legendFormat": "rx — {{device}}",
           "refId": "A"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum by (device)(rate(node_network_transmit_bytes_total{instance=~\"$instance\", device=~\"$interface\"}[5m])) * 8",
+          "expr": "sum by (device)(rate(node_network_transmit_bytes_total{device=~\"$interface\"}[5m]) * on(instance) group_left(nodename) node_uname_info{nodename=~\"$instance\"}) * 8",
           "legendFormat": "tx — {{device}}",
           "refId": "B"
         }
@@ -466,7 +466,7 @@
       {
         "current": {},
         "datasource": {"type": "prometheus", "uid": "prometheus"},
-        "definition": "label_values(node_cpu_seconds_total, instance)",
+        "definition": "label_values(node_uname_info, nodename)",
         "hide": 0,
         "includeAll": false,
         "label": "Node",
@@ -474,7 +474,7 @@
         "name": "instance",
         "options": [],
         "query": {
-          "query": "label_values(node_cpu_seconds_total, instance)",
+          "query": "label_values(node_uname_info, nodename)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -485,7 +485,7 @@
       {
         "current": {},
         "datasource": {"type": "prometheus", "uid": "prometheus"},
-        "definition": "label_values(node_disk_read_bytes_total{instance=~\"$instance\"}, device)",
+        "definition": "label_values(node_disk_read_bytes_total, device)",
         "hide": 0,
         "includeAll": true,
         "label": "Disk",
@@ -493,7 +493,7 @@
         "name": "disk",
         "options": [],
         "query": {
-          "query": "label_values(node_disk_read_bytes_total{instance=~\"$instance\"}, device)",
+          "query": "label_values(node_disk_read_bytes_total, device)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -504,7 +504,7 @@
       {
         "current": {},
         "datasource": {"type": "prometheus", "uid": "prometheus"},
-        "definition": "label_values(node_network_receive_bytes_total{instance=~\"$instance\"}, device)",
+        "definition": "label_values(node_network_receive_bytes_total, device)",
         "hide": 0,
         "includeAll": true,
         "label": "Interface",
@@ -512,7 +512,7 @@
         "name": "interface",
         "options": [],
         "query": {
-          "query": "label_values(node_network_receive_bytes_total{instance=~\"$instance\"}, device)",
+          "query": "label_values(node_network_receive_bytes_total, device)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
