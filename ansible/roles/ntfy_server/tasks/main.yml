@@ -1,0 +1,69 @@
+---
+- name: Install prerequisite packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - gnupg
+    state: present
+    update_cache: true
+
+- name: Create /etc/apt/keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Download ntfy apt key
+  ansible.builtin.get_url:
+    url: https://packages.ntfy.sh/apt/binwiederhier/gpg.key
+    dest: /etc/apt/keyrings/ntfy.asc
+    mode: "0644"
+  check_mode: false
+
+- name: Add ntfy apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch={{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}
+      signed-by=/etc/apt/keyrings/ntfy.asc]
+      https://packages.ntfy.sh/apt/stable debian main
+    filename: ntfy
+    state: present
+  check_mode: false
+
+- name: Install ntfy
+  ansible.builtin.apt:
+    name: ntfy
+    state: present
+    update_cache: true
+
+- name: Create ntfy data directory
+  ansible.builtin.file:
+    path: /var/lib/ntfy
+    state: directory
+    owner: ntfy
+    group: ntfy
+    mode: "0750"
+
+- name: Template ntfy server config
+  ansible.builtin.template:
+    src: server.yml.j2
+    dest: /etc/ntfy/server.yml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart ntfy
+
+- name: Enable and start ntfy
+  ansible.builtin.systemd:
+    name: ntfy
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Remind operator to bootstrap ntfy user and token
+  ansible.builtin.debug:
+    msg: >-
+      ntfy server deployed. Bootstrap steps (run once):
+      1. ssh {{ inventory_hostname }} sudo ntfy user add --role=admin admin
+      2. ssh {{ inventory_hostname }} sudo ntfy token add --expires=0 admin
+      3. Copy the token into .env as NTFY_TOKEN, then re-run the playbook.

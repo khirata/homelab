@@ -92,3 +92,20 @@
     - not ansible_check_mode
     - wazuh_manager_vault_auth.status == 401
   notify: Restart wazuh-manager
+
+- name: Create wazuh-manager systemd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/wazuh-manager.service.d
+    state: directory
+    mode: "0755"
+
+- name: Add OnFailure drop-in for wazuh-manager
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      OnFailure=notify-ntfy@%n.service
+    dest: /etc/systemd/system/wazuh-manager.service.d/ntfy.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd daemon

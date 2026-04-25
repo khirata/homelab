@@ -4,3 +4,8 @@
     name: wazuh-manager
     state: restarted
   ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"
