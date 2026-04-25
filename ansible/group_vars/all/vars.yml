@@ -65,9 +65,12 @@ redis_dashboard_id: 763
 redis_dashboard_revision: 1
 
 # =============================================================================
-# Cloudflare Access
+# Grafana external access
 # =============================================================================
-cloudflare_team_name: "{{ lookup('env', 'CLOUDFLARE_TEAM_NAME') }}"
+# Public URL Grafana embeds in alert links. Set to Cloudflare Tunnel URL when exposed.
+grafana_external_url: "{{ lookup('env', 'GRAFANA_EXTERNAL_URL') | default('', true) }}"
+# Cloudflare Access team name (<team>.cloudflareaccess.com). Enables JWT auth when set.
+cloudflare_team_name: "{{ lookup('env', 'CLOUDFLARE_TEAM_NAME') | default('', true) }}"
 
 # =============================================================================
 # Alerting (optional — omit env var to disable that channel)
