@@ -38,8 +38,12 @@ systemd journal  (local read, no port)
     ▼
 Alloy  loki.source.journal
     │  relabel:
-    │    __journal__systemd_unit  → label "unit"
-    │    __journal__hostname      → label "host"
+    │    __journal__systemd_unit      → label "unit"
+    │    __journal__systemd_unit      → label "service_name" (strips .service/.socket/.timer)
+    │    __journal__syslog_identifier → label "service_name" (fallback: legacy syslog)
+    │    __journal__transport         → label "service_name" (fallback: kernel/audit)
+    │    __journal__comm              → label "service_name" (fallback: raw process)
+    │    __journal__hostname          → label "host"
     │    static: job="journal", instance="<node>"
     │
     ▼  HTTP POST  TCP 3100
@@ -58,7 +62,7 @@ Apr 18 12:00:01 <node> sshd[1234]: Failed password for invalid user admin from 1
 ```json
 {
   "streams": [{
-    "stream": { "unit": "ssh.service", "host": "<node>", "job": "journal", "instance": "<node>" },
+    "stream": { "unit": "ssh.service", "service_name": "ssh", "host": "<node>", "job": "journal", "instance": "<node>" },
     "values": [["1713441601000000000", "Failed password for invalid user admin from 10.0.0.1 port 54321 ssh2"]]
   }]
 }
