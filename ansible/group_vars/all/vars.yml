@@ -67,7 +67,7 @@ redis_dashboard_revision: 1
 # =============================================================================
 # Alerting (optional — omit env var to disable that channel)
 # =============================================================================
-alert_email:         "{{ lookup('env', 'ALERT_EMAIL') }}"
+alert_email: "{{ lookup('env', 'ALERT_EMAIL') }}"
 discord_webhook_url: "{{ lookup('env', 'DISCORD_WEBHOOK_URL') }}"
 
 # =============================================================================
