@@ -5,6 +5,3 @@ ansible_user: "{{ lookup('env', 'SIEM_SERVER_USER') }}"
 
 # Alloy runs in server mode: receives Unifi syslog + exports local metrics
 alloy_mode: server
-
-# Short hostname used as the instance label in Prometheus metrics (strip .local)
-node_name: "{{ siem_server_host | regex_replace('\\..*$', '') }}"

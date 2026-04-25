@@ -27,7 +27,7 @@ loki.relabel "journal" {
   }
 
   rule {
-    replacement  = "{{ inventory_hostname }}"
+    replacement  = "{{ ansible_hostname }}"
     target_label = "instance"
   }
 }
