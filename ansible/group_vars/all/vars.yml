@@ -75,6 +75,13 @@ cloudflare_team_name: "{{ lookup('env', 'CLOUDFLARE_TEAM_NAME') }}"
 alert_email: "{{ lookup('env', 'ALERT_EMAIL') }}"
 discord_webhook_url: "{{ lookup('env', 'DISCORD_WEBHOOK_URL') }}"
 
+# ntfy — crash alerts via systemd OnFailure and Docker event notifier
+# Primary: self-hosted ntfy on laf2 (LAN); fallback: ntfy.sh free tier (cloud)
+ntfy_port: 2586
+ntfy_topic: "{{ lookup('env', 'NTFY_TOPIC') | default('homelab', true) }}"
+ntfy_token: "{{ lookup('env', 'NTFY_TOKEN') }}"
+ntfy_cloud_topic: "{{ lookup('env', 'NTFY_CLOUD_TOPIC') }}"
+
 # =============================================================================
 # PostgreSQL / Redis config (safe to commit)
 # =============================================================================

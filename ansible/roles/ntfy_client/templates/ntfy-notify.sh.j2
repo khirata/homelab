@@ -1,0 +1,25 @@
+#!/bin/bash
+# Active/passive failover: try self-hosted laf2 first, fall back to ntfy.sh.
+# Delivers exactly 1 notification per event — no duplicates.
+SERVICE="$1"
+HOST="$2"
+MSG="Service ${SERVICE} failed on ${HOST}"
+
+curl -sf --connect-timeout 3 --max-time 5 \
+  -H "Authorization: Bearer ${NTFY_TOKEN}" \
+  -H "Title: Service Down" \
+  -H "Priority: 4" \
+  -H "Tags: warning" \
+  --data-raw "${MSG}" \
+  "http://laf2.local:{{ ntfy_port }}/{{ ntfy_topic }}" && exit 0
+
+{% if ntfy_cloud_topic %}
+curl -sf --connect-timeout 5 --max-time 10 \
+  -H "Title: Service Down" \
+  -H "Priority: 4" \
+  -H "Tags: warning" \
+  --data-raw "${MSG}" \
+  "https://ntfy.sh/{{ ntfy_cloud_topic }}" && exit 0
+{% endif %}
+
+exit 1

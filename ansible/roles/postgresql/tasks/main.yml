@@ -170,3 +170,20 @@
     enabled: true
     state: started
   ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Create postgresql systemd drop-in directory
+  ansible.builtin.file:
+    path: "/etc/systemd/system/postgresql@{{ postgresql_version }}-main.service.d"
+    state: directory
+    mode: "0755"
+
+- name: Add OnFailure drop-in for postgresql
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      OnFailure=notify-ntfy@%n.service
+    dest: "/etc/systemd/system/postgresql@{{ postgresql_version }}-main.service.d/ntfy.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd daemon

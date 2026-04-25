@@ -137,6 +137,50 @@
     mode: "0600"
   notify: Restart LGTM stack
 
+- name: Deploy docker-event-notifier script
+  ansible.builtin.template:
+    src: docker-event-notifier.sh.j2
+    dest: /usr/local/bin/docker-event-notifier.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy docker-event-notifier systemd unit
+  ansible.builtin.copy:
+    src: docker-event-notifier.service
+    dest: /etc/systemd/system/docker-event-notifier.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Create docker systemd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: "0755"
+
+- name: Add OnFailure drop-in for docker
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      OnFailure=notify-ntfy@%n.service
+    dest: /etc/systemd/system/docker.service.d/ntfy.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Enable and start docker-event-notifier
+  ansible.builtin.systemd:
+    name: docker-event-notifier
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"
+
 - name: Pull and start LGTM stack
   ansible.builtin.command:
     cmd: docker compose -f {{ siem_config_dir }}/docker-compose.lgtm.yml up -d --pull always
