@@ -36,6 +36,7 @@
   loop:
     - datasources
     - dashboards
+    - alerting
 
 - name: Template Docker Compose file
   ansible.builtin.template:
@@ -99,6 +100,33 @@
     group: root
     mode: "0644"
   tags: [dashboards]
+
+- name: Template Grafana alerting contact points
+  ansible.builtin.template:
+    src: grafana-alerting-contact-points.yaml.j2
+    dest: "{{ siem_config_dir }}/grafana-provisioning/alerting/contact-points.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart LGTM stack
+
+- name: Template Grafana alerting notification policy
+  ansible.builtin.template:
+    src: grafana-alerting-notification-policy.yaml.j2
+    dest: "{{ siem_config_dir }}/grafana-provisioning/alerting/notification-policy.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart LGTM stack
+
+- name: Template Grafana alerting rules
+  ansible.builtin.template:
+    src: grafana-alerting-rules.yaml.j2
+    dest: "{{ siem_config_dir }}/grafana-provisioning/alerting/rules.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart LGTM stack
 
 - name: Template Unpoller config
   ansible.builtin.template:

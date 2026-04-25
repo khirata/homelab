@@ -1,0 +1,24 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/lgtm/templates/grafana-alerting-contact-points.yaml.j2
+# Channels are enabled only when the corresponding env var is set.
+
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: homelab-alerts
+    receivers:
+{% if alert_email %}
+      - uid: receiver-email
+        type: email
+        settings:
+          addresses: "{{ alert_email }}"
+          singleEmail: false
+{% endif %}
+{% if discord_webhook_url %}
+      - uid: receiver-discord
+        type: discord
+        settings:
+          url: "{{ discord_webhook_url }}"
+          use_discord_username: false
+{% endif %}
