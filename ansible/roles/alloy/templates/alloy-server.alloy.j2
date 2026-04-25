@@ -80,7 +80,7 @@ loki.relabel "journal" {
   // ── service_name: cascaded fallback ──────────────────────────────────────
   rule {
     source_labels = ["__journal__systemd_unit"]
-    regex         = "^(.+?)(?:@[^.]*)?\.(?:service|socket|timer)$"
+    regex         = "^(.+?)(?:@[^.]*)?[.](?:service|socket|timer)$"
     target_label  = "service_name"
   }
 
