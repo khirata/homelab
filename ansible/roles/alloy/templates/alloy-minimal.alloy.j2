@@ -16,6 +16,34 @@ loki.relabel "journal" {
     target_label  = "unit"
   }
 
+  // ── service_name: cascaded fallback ──────────────────────────────────────
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    regex         = "^(.+?)(?:@[^.]*)?\.(?:service|socket|timer)$"
+    target_label  = "service_name"
+  }
+
+  rule {
+    source_labels = ["service_name", "__journal__syslog_identifier"]
+    regex         = "^;(.+)$"
+    target_label  = "service_name"
+    replacement   = "$1"
+  }
+
+  rule {
+    source_labels = ["service_name", "__journal__transport"]
+    regex         = "^;(kernel|audit)$"
+    target_label  = "service_name"
+    replacement   = "$1"
+  }
+
+  rule {
+    source_labels = ["service_name", "__journal__comm"]
+    regex         = "^;(.+)$"
+    target_label  = "service_name"
+    replacement   = "$1"
+  }
+
   rule {
     source_labels = ["__journal__hostname"]
     target_label  = "host"
