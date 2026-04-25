@@ -61,6 +61,8 @@ unpoller_version: "v2.11.2"
 wazuh_version: "4.14"
 infisical_version: "v0.146.0-postgres"
 postgresql_version: "16"
+redis_dashboard_id: 763
+redis_dashboard_revision: 1
 
 # =============================================================================
 # PostgreSQL / Redis config (safe to commit)

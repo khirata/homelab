@@ -91,6 +91,16 @@
     mode: "0644"
   notify: Restart LGTM stack
 
+- name: Download Redis dashboard from Grafana.com
+  ansible.builtin.get_url:
+    url: "https://grafana.com/api/dashboards/{{ redis_dashboard_id }}/revisions/{{ redis_dashboard_revision }}/download"
+    dest: "{{ siem_config_dir }}/grafana-provisioning/dashboards/redis.json"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart LGTM stack
+  tags: [dashboards]
+
 - name: Copy Grafana provisioned dashboards
   ansible.builtin.copy:
     src: dashboards/

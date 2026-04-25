@@ -30,7 +30,7 @@ prometheus.relabel "node_instance" {
 
   rule {
     target_label = "instance"
-    replacement  = "{{ inventory_hostname }}"
+    replacement  = "{{ ansible_hostname }}"
   }
 }
 
@@ -66,7 +66,7 @@ loki.relabel "journal" {
   }
 
   rule {
-    replacement  = "{{ inventory_hostname }}"
+    replacement  = "{{ ansible_hostname }}"
     target_label = "instance"
   }
 }
@@ -92,7 +92,7 @@ loki.relabel "pg_logs" {
   }
 
   rule {
-    replacement  = "{{ inventory_hostname }}"
+    replacement  = "{{ ansible_hostname }}"
     target_label = "instance"
   }
 }
