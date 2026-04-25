@@ -10,8 +10,10 @@ groups:
     interval: 2m
     rules:
 
-      # Fires when a node stops sending Prometheus metrics for >5 min.
-      # Covers: Alloy fully crashed, node unreachable, network partition.
+      # Fires per-instance when a node stops sending Prometheus metrics for >5 min.
+      # Uses timestamp delta instead of absent_over_time: absent_over_time fires
+      # only when ALL instances are gone; timestamp delta fires per-instance.
+      # job="integrations/unix" is the label Alloy's prometheus.exporter.unix uses.
       - uid: node-metrics-silence
         title: "Node metrics silence"
         condition: C
@@ -22,15 +24,16 @@ groups:
               from: 600
               to: 0
             model:
-              expr: absent_over_time(node_cpu_seconds_total{job="node"}[5m])
+              expr: time() - timestamp(last_over_time(node_cpu_seconds_total{job="integrations/unix"}[6m]))
               instant: true
           - refId: C
             datasourceUid: "__expr__"
             model:
               type: threshold
               conditions:
-                - evaluator: { type: gt, params: [0] }
-                  query: { params: [A] }
+                - evaluator: { type: gt, params: [300] }
+                  query: { params: ["A"] }
+              expression: "A"
         noDataState: OK
         execErrState: Alerting
         for: 5m
@@ -61,7 +64,8 @@ groups:
               type: threshold
               conditions:
                 - evaluator: { type: lt, params: [1] }
-                  query: { params: [A] }
+                  query: { params: ["A"] }
+              expression: "A"
         noDataState: Alerting
         execErrState: Alerting
         for: 5m
@@ -92,7 +96,8 @@ groups:
               type: threshold
               conditions:
                 - evaluator: { type: lt, params: [1] }
-                  query: { params: [A] }
+                  query: { params: ["A"] }
+              expression: "A"
         noDataState: Alerting
         execErrState: Alerting
         for: 10m
@@ -123,7 +128,8 @@ groups:
               type: threshold
               conditions:
                 - evaluator: { type: lt, params: [1] }
-                  query: { params: [A] }
+                  query: { params: ["A"] }
+              expression: "A"
         noDataState: Alerting
         execErrState: Alerting
         for: 10m
@@ -155,7 +161,8 @@ groups:
               type: threshold
               conditions:
                 - evaluator: { type: lt, params: [1] }
-                  query: { params: [A] }
+                  query: { params: ["A"] }
+              expression: "A"
         noDataState: Alerting
         execErrState: Alerting
         for: 5m
