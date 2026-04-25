@@ -1,4 +1,12 @@
 ---
+- name: ntfy notification servers
+  hosts: ntfy_servers
+  become: true
+  vars:
+    ansible_remote_tmp: /tmp
+  roles:
+    - ntfy_server
+
 - name: PostgreSQL server
   hosts: postgresql_server
   become: true
@@ -6,6 +14,7 @@
     ansible_remote_tmp: /tmp
     alloy_pg_log_dir: /var/log/postgresql
   roles:
+    - ntfy_client
     - postgresql
     - alloy
 
@@ -15,6 +24,7 @@
   vars:
     ansible_remote_tmp: /tmp
   roles:
+    - ntfy_client
     - redis
     - alloy
 
@@ -26,6 +36,7 @@
     alloy_pg_log_dir: /var/log/postgresql
   roles:
     - docker
+    - ntfy_client
     - lgtm
     - wazuh_manager
     - alloy        # server mode: receives Unifi syslog on UDP/514
