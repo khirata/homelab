@@ -1,0 +1,8 @@
+[Unit]
+Description=Send ntfy alert for %i failure
+After=network.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/ntfy-client.env
+ExecStart=/usr/local/bin/ntfy-notify.sh "%i" "%H"
