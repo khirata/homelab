@@ -5,17 +5,13 @@
 http_port = 3000
 # Bind to all interfaces so the host port mapping works
 http_addr =
-{% if grafana_external_url %}
-root_url = {{ grafana_external_url }}
-serve_from_sub_path = false
-{% endif %}
 
 [security]
 # Admin password is set via GF_SECURITY_ADMIN_PASSWORD env var in Docker Compose.
 # Do not set admin_password here.
 admin_user = admin
 disable_gravatar = true
-cookie_secure = {% if grafana_external_url and grafana_external_url.startswith('https') %}true{% else %}false{% endif %}
+cookie_secure = false
 
 [paths]
 provisioning = /etc/grafana/provisioning
@@ -38,18 +34,3 @@ host = {{ smtp_host }}
 from_address = {{ smtp_from }}
 from_name = Grafana Homelab
 startTLS_policy = {{ smtp_starttls_policy }}
-
-{% if cloudflare_access_team %}
-# Cloudflare Access JWT auth — users authenticate at the tunnel; Grafana trusts the signed JWT.
-# Grafana fetches the JWKS from Cloudflare on first use and caches it.
-[auth.jwt]
-enabled = true
-header_name = Cf-Access-Jwt-Assertion
-email_claim = email
-jwks_url = https://{{ cloudflare_access_team }}.cloudflareaccess.com/cdn-cgi/access/certs
-auto_sign_up = true
-
-# Disable the login form when Cloudflare Access is the sole auth layer.
-[auth]
-disable_login_form = true
-{% endif %}
