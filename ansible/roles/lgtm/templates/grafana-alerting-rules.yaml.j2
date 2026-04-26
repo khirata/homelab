@@ -24,7 +24,7 @@ groups:
               from: 600
               to: 0
             model:
-              expr: max by (instance) (time() - timestamp(last_over_time(node_cpu_seconds_total{job="integrations/unix"}[6m])))
+              expr: time() - timestamp(last_over_time(node_cpu_seconds_total{job="integrations/unix"}[6m]))
               instant: true
           - refId: C
             datasourceUid: "__expr__"
@@ -56,8 +56,8 @@ groups:
               from: 600
               to: 0
             model:
-              queryType: instant
               expr: 'sum by (instance) (count_over_time({job="journal"}[5m]))'
+              instant: true
           - refId: C
             datasourceUid: "__expr__"
             model:
@@ -88,8 +88,8 @@ groups:
               from: 900
               to: 0
             model:
-              queryType: instant
               expr: 'sum by (instance) (count_over_time({job="postgresql"}[10m]))'
+              instant: true
           - refId: C
             datasourceUid: "__expr__"
             model:
@@ -120,8 +120,8 @@ groups:
               from: 900
               to: 0
             model:
-              queryType: instant
               expr: 'sum by (instance) (count_over_time({job="journal",service_name="redis-server"}[10m]))'
+              instant: true
           - refId: C
             datasourceUid: "__expr__"
             model:
@@ -153,8 +153,8 @@ groups:
               from: 600
               to: 0
             model:
-              queryType: instant
               expr: 'sum by (site) (count_over_time({job="unifi"}[5m]))'
+              instant: true
           - refId: C
             datasourceUid: "__expr__"
             model:
