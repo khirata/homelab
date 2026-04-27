@@ -4,6 +4,7 @@
     name:
       - curl
       - gnupg
+      - apt-transport-https
     state: present
     update_cache: true
 
@@ -13,10 +14,10 @@
     state: directory
     mode: "0755"
 
-- name: Download ntfy apt key
+- name: Download ntfy apt keyring
   ansible.builtin.get_url:
-    url: https://archive.ntfy.sh/apt/binwiederhier/gpg.key
-    dest: /etc/apt/keyrings/ntfy.asc
+    url: https://archive.ntfy.sh/apt/keyring.gpg
+    dest: /etc/apt/keyrings/ntfy.gpg
     mode: "0644"
   check_mode: false
 
@@ -24,8 +25,8 @@
   ansible.builtin.apt_repository:
     repo: >-
       deb [arch={{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}
-      signed-by=/etc/apt/keyrings/ntfy.asc]
-      https://archive.ntfy.sh/apt/stable debian main
+      signed-by=/etc/apt/keyrings/ntfy.gpg]
+      https://archive.ntfy.sh/apt stable main
     filename: ntfy
     state: present
   check_mode: false
