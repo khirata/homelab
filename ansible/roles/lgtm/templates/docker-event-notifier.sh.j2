@@ -1,0 +1,31 @@
+#!/bin/bash
+# Watch for Docker container crash/OOM events and send ntfy notifications.
+# Active/passive: tries self-hosted laf2 first, falls back to ntfy.sh.
+set -euo pipefail
+
+source /etc/ntfy-client.env
+
+docker events \
+  --filter event=die \
+  --filter event=oom \
+  {% raw %}--format '{{.Actor.Attributes.name}} {{.Action}}'{% endraw %} \
+  | while IFS=' ' read -r name action; do
+      MSG="Docker container '${name}' ${action} on $(hostname)"
+
+      curl -sf --connect-timeout 3 --max-time 5 \
+        -H "Authorization: Bearer ${NTFY_TOKEN}" \
+        -H "Title: Container Down" \
+        -H "Priority: 4" \
+        -H "Tags: rotating_light" \
+        --data-raw "${MSG}" \
+        "http://laf2.local:{{ ntfy_port }}/{{ ntfy_topic }}" && continue
+
+{% if ntfy_cloud_topic %}
+      curl -sf --connect-timeout 5 --max-time 10 \
+        -H "Title: Container Down" \
+        -H "Priority: 4" \
+        -H "Tags: rotating_light" \
+        --data-raw "${MSG}" \
+        "https://ntfy.sh/{{ ntfy_cloud_topic }}" || true
+{% endif %}
+    done

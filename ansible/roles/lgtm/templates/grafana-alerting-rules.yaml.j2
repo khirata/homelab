@@ -24,11 +24,19 @@ groups:
             model:
               expr: absent_over_time(node_cpu_seconds_total{job="node"}[5m])
               instant: true
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: reduce
+              expression: "A"
+              reducer: last
+              settings:
+                mode: dropNN
           - refId: C
             datasourceUid: "__expr__"
             model:
               type: threshold
-              expression: "A"
+              expression: "B"
               conditions:
                 - evaluator: { type: gt, params: [0] }
         noDataState: OK
@@ -55,11 +63,19 @@ groups:
             model:
               expr: 'sum by (instance) (count_over_time({job="journal"}[5m]))'
               instant: true
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: reduce
+              expression: "A"
+              reducer: last
+              settings:
+                mode: dropNN
           - refId: C
             datasourceUid: "__expr__"
             model:
               type: threshold
-              expression: "A"
+              expression: "B"
               conditions:
                 - evaluator: { type: lt, params: [1] }
         noDataState: Alerting
@@ -86,11 +102,19 @@ groups:
             model:
               expr: 'sum by (instance) (count_over_time({job="postgresql"}[10m]))'
               instant: true
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: reduce
+              expression: "A"
+              reducer: last
+              settings:
+                mode: dropNN
           - refId: C
             datasourceUid: "__expr__"
             model:
               type: threshold
-              expression: "A"
+              expression: "B"
               conditions:
                 - evaluator: { type: lt, params: [1] }
         noDataState: Alerting
@@ -117,11 +141,19 @@ groups:
             model:
               expr: 'sum by (instance) (count_over_time({job="journal",service_name="redis-server"}[10m]))'
               instant: true
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: reduce
+              expression: "A"
+              reducer: last
+              settings:
+                mode: dropNN
           - refId: C
             datasourceUid: "__expr__"
             model:
               type: threshold
-              expression: "A"
+              expression: "B"
               conditions:
                 - evaluator: { type: lt, params: [1] }
         noDataState: Alerting
@@ -149,11 +181,19 @@ groups:
             model:
               expr: 'sum by (site) (count_over_time({job="unifi"}[5m]))'
               instant: true
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: reduce
+              expression: "A"
+              reducer: last
+              settings:
+                mode: dropNN
           - refId: C
             datasourceUid: "__expr__"
             model:
               type: threshold
-              expression: "A"
+              expression: "B"
               conditions:
                 - evaluator: { type: lt, params: [1] }
         noDataState: Alerting

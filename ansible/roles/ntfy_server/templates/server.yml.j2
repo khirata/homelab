@@ -1,0 +1,5 @@
+base-url: "http://{{ ansible_host }}:{{ ntfy_port }}"
+listen-http: ":{{ ntfy_port }}"
+cache-file: /var/lib/ntfy/cache.db
+auth-file: /var/lib/ntfy/auth.db
+auth-default-access: deny-all

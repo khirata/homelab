@@ -1,0 +1,2 @@
+---
+# ntfy_port is defined globally in group_vars/all/vars.yml (default: 2586)

@@ -1,0 +1,13 @@
+[Unit]
+Description=Docker container event notifier (ntfy)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+RestartSec=5
+ExecStart=/usr/local/bin/docker-event-notifier.sh
+EnvironmentFile=-/etc/ntfy-client.env
+
+[Install]
+WantedBy=multi-user.target
