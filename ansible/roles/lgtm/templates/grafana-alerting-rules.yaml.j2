@@ -28,9 +28,9 @@ groups:
             datasourceUid: "__expr__"
             model:
               type: threshold
+              expression: "A"
               conditions:
                 - evaluator: { type: gt, params: [0] }
-                  query: { params: [A] }
         noDataState: OK
         execErrState: Alerting
         for: 5m
@@ -59,9 +59,9 @@ groups:
             datasourceUid: "__expr__"
             model:
               type: threshold
+              expression: "A"
               conditions:
                 - evaluator: { type: lt, params: [1] }
-                  query: { params: [A] }
         noDataState: Alerting
         execErrState: Alerting
         for: 5m
@@ -90,9 +90,9 @@ groups:
             datasourceUid: "__expr__"
             model:
               type: threshold
+              expression: "A"
               conditions:
                 - evaluator: { type: lt, params: [1] }
-                  query: { params: [A] }
         noDataState: Alerting
         execErrState: Alerting
         for: 10m
@@ -121,9 +121,9 @@ groups:
             datasourceUid: "__expr__"
             model:
               type: threshold
+              expression: "A"
               conditions:
                 - evaluator: { type: lt, params: [1] }
-                  query: { params: [A] }
         noDataState: Alerting
         execErrState: Alerting
         for: 10m
@@ -153,9 +153,9 @@ groups:
             datasourceUid: "__expr__"
             model:
               type: threshold
+              expression: "A"
               conditions:
                 - evaluator: { type: lt, params: [1] }
-                  query: { params: [A] }
         noDataState: Alerting
         execErrState: Alerting
         for: 5m
