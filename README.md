@@ -21,7 +21,7 @@ in [dotconfig](https://github.com/khirata/dotconfig) as part of base node setup.
 | Infisical (Docker) | Secret management | 8080 | `$SIEM_SERVER_HOST` |
 | PostgreSQL | Shared database (Infisical) | 5432 (localhost only) | `$POSTGRESQL_SERVER_IP` |
 | Redis | Shared cache (Infisical) | 6379 (localhost only) | `$REDIS_SERVER_IP` |
-| ntfy | Push notifications (crash alerts) | 2586 | `laf2.local` |
+| ntfy | Push notifications (crash alerts) | 2586 | `$NTFY_SERVER_HOST` |
 
 ---
 
