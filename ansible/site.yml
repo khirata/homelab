@@ -1,5 +1,5 @@
 ---
-- name: ntfy notification servers
+- name: Ntfy notification servers
   hosts: ntfy_servers
   become: true
   vars:
