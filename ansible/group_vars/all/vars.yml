@@ -65,6 +65,11 @@ redis_dashboard_id: 763
 redis_dashboard_revision: 1
 
 # =============================================================================
+# Cloudflare Access
+# =============================================================================
+cloudflare_team_name: "{{ lookup('env', 'CLOUDFLARE_TEAM_NAME') }}"
+
+# =============================================================================
 # Alerting (optional — omit env var to disable that channel)
 # =============================================================================
 alert_email: "{{ lookup('env', 'ALERT_EMAIL') }}"
