@@ -1,40 +1,20 @@
 ---
-- name: Install prerequisite packages
-  ansible.builtin.apt:
-    name:
-      - curl
-      - gnupg
-    state: present
-    update_cache: true
+- name: Set ntfy deb architecture
+  ansible.builtin.set_fact:
+    ntfy_deb_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
 
-- name: Create /etc/apt/keyrings directory
-  ansible.builtin.file:
-    path: /etc/apt/keyrings
-    state: directory
-    mode: "0755"
-
-- name: Download ntfy apt key
+- name: Download ntfy .deb from GitHub releases
   ansible.builtin.get_url:
-    url: https://packages.ntfy.sh/apt/binwiederhier/gpg.key
-    dest: /etc/apt/keyrings/ntfy.asc
+    url: "https://github.com/binwiederhier/ntfy/releases/download/v{{ ntfy_version }}/ntfy_{{ ntfy_version }}_linux_{{ ntfy_deb_arch }}.deb"
+    dest: "/tmp/ntfy_{{ ntfy_version }}_linux_{{ ntfy_deb_arch }}.deb"
     mode: "0644"
   check_mode: false
 
-- name: Add ntfy apt repository
-  ansible.builtin.apt_repository:
-    repo: >-
-      deb [arch={{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}
-      signed-by=/etc/apt/keyrings/ntfy.asc]
-      https://packages.ntfy.sh/apt/stable debian main
-    filename: ntfy
-    state: present
-  check_mode: false
-
-- name: Install ntfy
+- name: Install ntfy .deb
   ansible.builtin.apt:
-    name: ntfy
+    deb: "/tmp/ntfy_{{ ntfy_version }}_linux_{{ ntfy_deb_arch }}.deb"
     state: present
-    update_cache: true
+  notify: Restart ntfy
 
 - name: Create ntfy data directory
   ansible.builtin.file:
