@@ -1,0 +1,48 @@
+---
+- name: Ensure curl is installed
+  ansible.builtin.apt:
+    name: curl
+    state: present
+
+- name: Deploy ntfy notification script
+  ansible.builtin.template:
+    src: ntfy-notify.sh.j2
+    dest: /usr/local/bin/ntfy-notify.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy notify-ntfy@ systemd template unit
+  ansible.builtin.copy:
+    src: notify-ntfy@.service
+    dest: /etc/systemd/system/notify-ntfy@.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Deploy ntfy client env file
+  ansible.builtin.template:
+    src: ntfy-client.env.j2
+    dest: /etc/ntfy-client.env
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Create alloy systemd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/alloy.service.d
+    state: directory
+    mode: "0755"
+
+- name: Add OnFailure drop-in for alloy
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      OnFailure=notify-ntfy@%n.service
+    dest: /etc/systemd/system/alloy.service.d/ntfy.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
