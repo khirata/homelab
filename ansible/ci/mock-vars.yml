@@ -42,6 +42,9 @@ redis_dashboard_revision: 1
 alloy_mode: server
 alloy_pg_log_dir: /var/log/postgresql
 
+# --- Cloudflare Access ---
+cloudflare_team_name: "example"
+
 # --- SMTP ---
 smtp_host: "smtp.example.com:587"
 smtp_from: "noreply@example.com"

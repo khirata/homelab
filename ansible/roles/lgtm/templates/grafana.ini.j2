@@ -34,3 +34,11 @@ host = {{ smtp_host }}
 from_address = {{ smtp_from }}
 from_name = Grafana Homelab
 startTLS_policy = {{ smtp_starttls_policy }}
+
+[auth.jwt]
+enabled = true
+header_name = Cf-Access-Jwt-Assertion
+email_claim = email
+jwk_set_url = https://{{ cloudflare_team_name }}.cloudflareaccess.com/cdn-cgi/access/certs
+cache_ttl = 60m
+auto_sign_up = true
