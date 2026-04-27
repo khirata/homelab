@@ -22,6 +22,10 @@ backup:
 deploy: _pre-deploy-backup
 	ansible-playbook $(PLAYBOOK) -i $(INVENTORY)
 
+## Deploy only the SIEM server (runs backup first)
+deploy-siem: _pre-deploy-backup
+	ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server
+
 ## Deploy only Grafana dashboards (no stack restart)
 deploy-dashboards:
 	ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --tags dashboards
