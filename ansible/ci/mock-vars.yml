@@ -42,8 +42,9 @@ redis_dashboard_revision: 1
 alloy_mode: server
 alloy_pg_log_dir: /var/log/postgresql
 
-# --- Cloudflare Access ---
-cloudflare_team_name: "example"
+# --- Grafana external access ---
+grafana_external_url: ""
+cloudflare_team_name: ""
 
 # --- SMTP ---
 smtp_host: "smtp.example.com:587"
