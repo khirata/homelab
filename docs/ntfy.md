@@ -16,7 +16,7 @@ All managed hosts
                               ┌─────────────────────────┴────────────────────────┐
                               │                                                   │
                     1st try (3 s timeout)                           fallback (5 s timeout)
-                    laf2.local:2586/$NTFY_TOPIC                 ntfy.sh/$NTFY_CLOUD_TOPIC
+                    $NTFY_SERVER_HOST:2586/$NTFY_TOPIC          ntfy.sh/$NTFY_CLOUD_TOPIC
                     (self-hosted, LAN)                           (cloud free tier)
                               │                                                   │
                               └─────────────────────────┬────────────────────────┘
@@ -30,7 +30,7 @@ siem_server only
 ```
 
 **Active/passive:** the script exits after the first successful delivery, so you receive exactly
-one notification per event. The ntfy.sh topic fires only when laf2 is unreachable.
+one notification per event. The ntfy.sh topic fires only when the primary server is unreachable.
 
 ---
 
@@ -55,7 +55,7 @@ omit `NTFY_CLOUD_TOPIC` to disable the cloud fallback.
 | Env var | Default | Description |
 |---------|---------|-------------|
 | `NTFY_TOPIC` | `homelab` | Topic name on the self-hosted server |
-| `NTFY_TOKEN` | _(empty)_ | Access token for the self-hosted server on laf2 |
+| `NTFY_TOKEN` | _(empty)_ | Access token for the self-hosted ntfy server |
 | `NTFY_CLOUD_TOPIC` | _(empty)_ | Topic on ntfy.sh (use a random suffix — see below) |
 
 Set these in `.env` before running the playbook.
@@ -64,7 +64,7 @@ Set these in `.env` before running the playbook.
 
 ## Deployment
 
-### 1. Deploy the ntfy server on laf2
+### 1. Deploy the ntfy server
 
 ```bash
 make deploy LIMIT=ntfy_servers
@@ -72,14 +72,14 @@ make deploy LIMIT=ntfy_servers
 ansible-playbook ansible/site.yml --limit ntfy_servers
 ```
 
-### 2. Bootstrap user and token (run once on laf2)
+### 2. Bootstrap user and token (run once on the ntfy server)
 
 ```bash
 # Create admin user (enter a password when prompted)
-ssh <user>@laf2.local sudo ntfy user add --role=admin admin
+ssh <user>@<ntfy-server> sudo ntfy user add --role=admin admin
 
 # Create a non-expiring access token
-ssh <user>@laf2.local sudo ntfy token add --expires=0 admin
+ssh <user>@<ntfy-server> sudo ntfy token add --expires=0 admin
 # → prints:  token: tk_xxxxxxxxxxxxxxxxxxxx
 ```
 
@@ -129,11 +129,11 @@ Install the **ntfy** app:
 ### Subscribe to the self-hosted server (primary)
 
 1. Open the app → **+** → **Subscribe to topic**
-2. Set server: `http://laf2.local:2586` (or your LAN IP)
+2. Set server: `http://<ntfy-server>:2586`
 3. Topic: `homelab` (your `NTFY_TOPIC` value)
 4. **Authentication**: enter `admin` and the password you set during bootstrap
 
-> For access outside your LAN, expose laf2 via a Cloudflare Tunnel or VPN first.
+> For access outside your LAN, expose the ntfy server via a Cloudflare Tunnel or VPN first.
 
 ### Subscribe to ntfy.sh (cloud fallback)
 
@@ -143,7 +143,7 @@ Install the **ntfy** app:
 4. No authentication required
 
 With both subscriptions active, you receive one alert per event under normal conditions
-(laf2 delivers it). If laf2 is unreachable, ntfy.sh delivers instead.
+(primary server delivers it). If the primary is unreachable, ntfy.sh delivers instead.
 
 ---
 
@@ -155,10 +155,10 @@ ntfy is installed via APT. To upgrade:
 ansible-playbook ansible/site.yml --limit ntfy_servers
 ```
 
-To upgrade manually on laf2:
+To upgrade manually on the ntfy server:
 
 ```bash
-ssh <user>@laf2.local sudo apt update && sudo apt install --only-upgrade ntfy
+ssh <user>@<ntfy-server> sudo apt update && sudo apt install --only-upgrade ntfy
 ```
 
 ---
@@ -167,17 +167,17 @@ ssh <user>@laf2.local sudo apt update && sudo apt install --only-upgrade ntfy
 
 ```bash
 # Status
-ssh <user>@laf2.local sudo systemctl status ntfy
+ssh <user>@<ntfy-server> sudo systemctl status ntfy
 
 # Logs
-ssh <user>@laf2.local sudo journalctl -u ntfy -f
+ssh <user>@<ntfy-server> sudo journalctl -u ntfy -f
 
 # List users / tokens
-ssh <user>@laf2.local sudo ntfy user list
-ssh <user>@laf2.local sudo ntfy token list
+ssh <user>@<ntfy-server> sudo ntfy user list
+ssh <user>@<ntfy-server> sudo ntfy token list
 
 # Rotate token (generate new, update .env, redeploy)
-ssh <user>@laf2.local sudo ntfy token add --expires=0 admin
+ssh <user>@<ntfy-server> sudo ntfy token add --expires=0 admin
 # update NTFY_TOKEN in .env
 make deploy
 ```
@@ -188,7 +188,7 @@ make deploy
 
 ```bash
 # Check ntfy server health
-curl http://laf2.local:2586/v1/health
+curl http://<ntfy-server>:2586/v1/health
 
 # Send a test notification from siem_server
 ssh <user>@<siem-host> bash -c '
@@ -197,7 +197,7 @@ ssh <user>@<siem-host> bash -c '
     -H "Authorization: Bearer $NTFY_TOKEN" \
     -H "Title: Test" \
     --data "ntfy test from $(hostname)" \
-    http://laf2.local:2586/homelab
+    http://<ntfy-server>:2586/homelab
 '
 
 # Test systemd OnFailure (redis example — restores immediately after)
