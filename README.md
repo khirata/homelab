@@ -21,6 +21,7 @@ in [dotconfig](https://github.com/khirata/dotconfig) as part of base node setup.
 | Infisical (Docker) | Secret management | 8080 | `$SIEM_SERVER_HOST` |
 | PostgreSQL | Shared database (Infisical) | 5432 (localhost only) | `$POSTGRESQL_SERVER_IP` |
 | Redis | Shared cache (Infisical) | 6379 (localhost only) | `$REDIS_SERVER_IP` |
+| ntfy | Push notifications (crash alerts) | 2586 | `laf2.local` |
 
 ---
 
@@ -51,4 +52,5 @@ See [docs/setup.md](docs/setup.md) for full prerequisites and upgrade instructio
 | [docs/infisical.md](docs/infisical.md) | Infisical first run, upgrading, secrets |
 | [docs/postgresql.md](docs/postgresql.md) | PostgreSQL operations, backup, restore |
 | [docs/redis.md](docs/redis.md) | Redis operations |
+| [docs/ntfy.md](docs/ntfy.md) | ntfy crash alerts, architecture, client setup |
 | [docs/operations.md](docs/operations.md) | General ops, log locations, verification, SSH tunnels |
