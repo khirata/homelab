@@ -22,7 +22,7 @@ groups:
               from: 600
               to: 0
             model:
-              expr: absent_over_time(node_cpu_seconds_total{job="node"}[5m])
+              expr: 'count by (instance) (last_over_time(node_cpu_seconds_total{job="node"}[1h])) unless count by (instance) (last_over_time(node_cpu_seconds_total{job="node"}[5m]))'
               instant: true
           - refId: B
             datasourceUid: "__expr__"
