@@ -1,0 +1,11 @@
+[Unit]
+Description=Clear ntfy alert for %i
+After=%i.service
+After=network.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/ntfy-client.env
+# Wait 30 seconds before checking if the service is active to avoid crash loop spam
+ExecStartPre=/bin/sleep 30
+ExecStart=/usr/local/bin/ntfy-clear.sh "%i" "%H"
