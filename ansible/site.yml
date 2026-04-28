@@ -1,4 +1,12 @@
 ---
+- name: Nodes
+  hosts: nodes
+  become: true
+  vars:
+    ansible_remote_tmp: /tmp
+  roles:
+    - alloy
+
 - name: Ntfy notification servers
   hosts: ntfy_servers
   become: true
