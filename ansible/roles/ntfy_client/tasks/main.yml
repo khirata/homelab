@@ -21,6 +21,23 @@
     mode: "0644"
   notify: Reload systemd
 
+- name: Deploy ntfy clear script
+  ansible.builtin.template:
+    src: ntfy-clear.sh.j2
+    dest: /usr/local/bin/ntfy-clear.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy notify-ntfy-clear@ systemd template unit
+  ansible.builtin.copy:
+    src: notify-ntfy-clear@.service
+    dest: /etc/systemd/system/notify-ntfy-clear@.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
 - name: Deploy ntfy client env file
   ansible.builtin.template:
     src: ntfy-client.env.j2
@@ -41,6 +58,8 @@
     content: |
       [Unit]
       OnFailure=notify-ntfy@%n.service
+      [Service]
+      ExecStartPost=-/bin/systemctl start --no-block notify-ntfy-clear@%N.service
     dest: /etc/systemd/system/alloy.service.d/ntfy.conf
     owner: root
     group: root

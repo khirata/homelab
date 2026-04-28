@@ -8,23 +8,34 @@ source /etc/ntfy-client.env
 docker events \
   --filter event=die \
   --filter event=oom \
+  --filter event=health_status: healthy \
   {% raw %}--format '{{.Actor.Attributes.name}} {{.Action}}'{% endraw %} \
   | while IFS=' ' read -r name action; do
-      MSG="Docker container '${name}' ${action} on $(hostname)"
+      if [[ "$action" == "health_status: healthy" || "$action" == "health_status:"* ]]; then
+        MSG="Docker container '${name}' recovered on $(hostname)"
+        TITLE="Container Up"
+        PRIO="3"
+        TAGS="white_check_mark"
+      else
+        MSG="Docker container '${name}' ${action} on $(hostname)"
+        TITLE="Container Down"
+        PRIO="4"
+        TAGS="rotating_light"
+      fi
 
       curl -sf --connect-timeout 3 --max-time 5 \
         -H "Authorization: Bearer ${NTFY_TOKEN}" \
-        -H "Title: Container Down" \
-        -H "Priority: 4" \
-        -H "Tags: rotating_light" \
+        -H "Title: ${TITLE}" \
+        -H "Priority: ${PRIO}" \
+        -H "Tags: ${TAGS}" \
         --data-raw "${MSG}" \
         "http://laf2.local:{{ ntfy_port }}/{{ ntfy_topic }}" && continue
 
 {% if ntfy_cloud_topic %}
       curl -sf --connect-timeout 5 --max-time 10 \
-        -H "Title: Container Down" \
-        -H "Priority: 4" \
-        -H "Tags: rotating_light" \
+        -H "Title: ${TITLE}" \
+        -H "Priority: ${PRIO}" \
+        -H "Tags: ${TAGS}" \
         --data-raw "${MSG}" \
         "https://ntfy.sh/{{ ntfy_cloud_topic }}" || true
 {% endif %}

@@ -5,6 +5,9 @@ SERVICE="$1"
 HOST="$2"
 MSG="Service ${SERVICE} failed on ${HOST}"
 
+# Mark the service as failed for edge-triggered clear notifications
+touch "/var/run/ntfy-${SERVICE}.failed"
+
 curl -sf --connect-timeout 3 --max-time 5 \
   -H "Authorization: Bearer ${NTFY_TOKEN}" \
   -H "Title: Service Down" \

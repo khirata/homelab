@@ -1,0 +1,38 @@
+#!/bin/bash
+# Clear notification script: triggered after a service successfully starts.
+# Only sends a notification if the service was previously in a failed state.
+SERVICE="$1"
+HOST="$2"
+STATE_FILE="/var/run/ntfy-${SERVICE}.failed"
+
+if [ ! -f "${STATE_FILE}" ]; then
+  # Service was not in a failed state; no need to send a clear notification.
+  exit 0
+fi
+
+# Check if the service is actually active (to avoid spamming during crash loops)
+if ! systemctl is-active --quiet "${SERVICE}"; then
+  # Service is not active, probably crashed again.
+  exit 0
+fi
+
+MSG="Service ${SERVICE} recovered on ${HOST}"
+
+curl -sf --connect-timeout 3 --max-time 5 \
+  -H "Authorization: Bearer ${NTFY_TOKEN}" \
+  -H "Title: Service Up" \
+  -H "Priority: 3" \
+  -H "Tags: white_check_mark" \
+  --data-raw "${MSG}" \
+  "http://laf2.local:{{ ntfy_port }}/{{ ntfy_topic }}" && rm -f "${STATE_FILE}" && exit 0
+
+{% if ntfy_cloud_topic %}
+curl -sf --connect-timeout 5 --max-time 10 \
+  -H "Title: Service Up" \
+  -H "Priority: 3" \
+  -H "Tags: white_check_mark" \
+  --data-raw "${MSG}" \
+  "https://ntfy.sh/{{ ntfy_cloud_topic }}" && rm -f "${STATE_FILE}" && exit 0
+{% endif %}
+
+exit 1
