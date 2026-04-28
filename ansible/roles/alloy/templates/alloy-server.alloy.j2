@@ -30,6 +30,12 @@ prometheus.relabel "node_instance" {
     target_label = "instance"
     replacement  = "{{ ansible_hostname }}"
   }
+
+  // prometheus.exporter.unix defaults to job="integrations/unix"; force it to "node"
+  rule {
+    target_label = "job"
+    replacement  = "node"
+  }
 }
 
 // ── Prometheus remote write → local Prometheus ──────────────────────────
