@@ -1,3 +1,2 @@
 ---
 # ntfy_port is defined globally in group_vars/all/vars.yml (default: 2586)
-ntfy_server_version: "2.22.0"
