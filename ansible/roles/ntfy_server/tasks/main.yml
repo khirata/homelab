@@ -1,18 +1,18 @@
 ---
 - name: Set ntfy deb architecture
   ansible.builtin.set_fact:
-    ntfy_deb_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+    ntfy_server_deb_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
 
 - name: Download ntfy .deb from GitHub releases
   ansible.builtin.get_url:
-    url: "https://github.com/binwiederhier/ntfy/releases/download/v{{ ntfy_version }}/ntfy_{{ ntfy_version }}_linux_{{ ntfy_deb_arch }}.deb"
-    dest: "/tmp/ntfy_{{ ntfy_version }}_linux_{{ ntfy_deb_arch }}.deb"
+    url: "https://github.com/binwiederhier/ntfy/releases/download/v{{ ntfy_server_version }}/ntfy_{{ ntfy_server_version }}_linux_{{ ntfy_server_deb_arch }}.deb"
+    dest: "/tmp/ntfy_{{ ntfy_server_version }}_linux_{{ ntfy_server_deb_arch }}.deb"
     mode: "0644"
   check_mode: false
 
 - name: Install ntfy .deb
   ansible.builtin.apt:
-    deb: "/tmp/ntfy_{{ ntfy_version }}_linux_{{ ntfy_deb_arch }}.deb"
+    deb: "/tmp/ntfy_{{ ntfy_server_version }}_linux_{{ ntfy_server_deb_arch }}.deb"
     state: present
   notify: Restart ntfy
 
