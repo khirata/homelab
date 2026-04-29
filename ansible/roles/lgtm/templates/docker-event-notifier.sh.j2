@@ -8,10 +8,10 @@ source /etc/ntfy-client.env
 docker events \
   --filter event=die \
   --filter event=oom \
-  --filter event=health_status: healthy \
+  --filter event=health_status \
   {% raw %}--format '{{.Actor.Attributes.name}} {{.Action}}'{% endraw %} \
   | while IFS=' ' read -r name action; do
-      if [[ "$action" == "health_status: healthy" || "$action" == "health_status:"* ]]; then
+      if [[ "$action" == "health_status: healthy" ]]; then
         MSG="Docker container '${name}' recovered on $(hostname)"
         TITLE="Container Up"
         PRIO="3"
