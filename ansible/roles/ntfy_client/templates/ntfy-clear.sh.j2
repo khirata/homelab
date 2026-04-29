@@ -1,0 +1,33 @@
+#!/bin/bash
+# Recovery monitor: waits for a failed service to become active, then sends a clear notification.
+SERVICE="$1"
+HOST="$2"
+
+# Wait until the service is active (checking every 5 seconds, up to 10 minutes)
+# If it doesn't recover in 10 minutes, the monitor exits to avoid zombie processes.
+for i in {1..120}; do
+  sleep 5
+  if systemctl is-active --quiet "${SERVICE}"; then
+    MSG="Service ${SERVICE} recovered on ${HOST}"
+
+    curl -sf --connect-timeout 3 --max-time 5 \
+      -H "Authorization: Bearer ${NTFY_TOKEN}" \
+      -H "Title: Service Up" \
+      -H "Priority: 3" \
+      -H "Tags: white_check_mark" \
+      --data-raw "${MSG}" \
+      "http://laf2.local:{{ ntfy_port }}/{{ ntfy_topic }}" && exit 0
+
+{% if ntfy_cloud_topic %}
+    curl -sf --connect-timeout 5 --max-time 10 \
+      -H "Title: Service Up" \
+      -H "Priority: 3" \
+      -H "Tags: white_check_mark" \
+      --data-raw "${MSG}" \
+      "https://ntfy.sh/{{ ntfy_cloud_topic }}" && exit 0
+{% endif %}
+
+    exit 1
+  fi
+done
+exit 0
