@@ -5,6 +5,10 @@ SERVICE="$1"
 HOST="$2"
 MSG="Service ${SERVICE} failed on ${HOST}"
 
+# Launch the recovery monitor in the background via systemd-run.
+# We suppress output in case it's already running (debounce).
+systemd-run --unit="ntfy-recovery-${SERVICE}" /usr/local/bin/ntfy-clear.sh "${SERVICE}" "${HOST}" >/dev/null 2>&1 || true
+
 curl -sf --connect-timeout 3 --max-time 5 \
   -H "Authorization: Bearer ${NTFY_TOKEN}" \
   -H "Title: Service Down" \

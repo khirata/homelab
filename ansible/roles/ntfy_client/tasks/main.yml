@@ -21,6 +21,14 @@
     mode: "0644"
   notify: Reload systemd
 
+- name: Deploy ntfy clear script
+  ansible.builtin.template:
+    src: ntfy-clear.sh.j2
+    dest: /usr/local/bin/ntfy-clear.sh
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Deploy ntfy client env file
   ansible.builtin.template:
     src: ntfy-client.env.j2

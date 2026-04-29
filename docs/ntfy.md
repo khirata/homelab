@@ -200,15 +200,21 @@ ssh <user>@<siem-host> bash -c '
     http://<ntfy-server>:2586/homelab
 '
 
-# Test systemd OnFailure (redis example — restores immediately after)
-ssh <user>@<redis-host> sudo systemctl stop redis-server
-# → notification should arrive within seconds
-ssh <user>@<redis-host> sudo systemctl start redis-server
+# Test systemd OnFailure & Recovery Monitor (redis example)
+# Note: systemctl stop is a graceful shutdown and will NOT trigger an alert.
+# We must forcefully kill the process to simulate a crash.
+ssh <user>@<redis-host> sudo kill -9 \$(pidof redis-server)
+# → "Service Down" notification should arrive within seconds.
+# (If Redis is configured to Restart=always, systemd will restart it immediately).
+# → "Service Up" recovery notification should arrive within ~10 seconds.
 
-# Test Docker event notifier
-ssh <user>@<siem-host> sudo docker stop grafana
-# → notification should arrive within seconds
+# Test Docker event notifier & Healthchecks
+# Note: The "Up" alert only fires when the container becomes fully healthy.
+ssh <user>@<siem-host> sudo docker kill grafana
+# → "Container Down" notification should arrive within seconds.
 ssh <user>@<siem-host> sudo docker start grafana
+# → Wait ~15 seconds for Grafana to pass its healthcheck.
+# → "Container Up" recovery notification should arrive.
 
 # Verify docker-event-notifier service
 ssh <user>@<siem-host> sudo systemctl status docker-event-notifier
