@@ -182,8 +182,6 @@
     content: |
       [Unit]
       OnFailure=notify-ntfy@%n.service
-      [Service]
-      ExecStartPost=-/bin/systemctl start --no-block notify-ntfy-clear@%N.service
     dest: "/etc/systemd/system/postgresql@{{ postgresql_version }}-main.service.d/ntfy.conf"
     owner: root
     group: root
