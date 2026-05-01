@@ -626,7 +626,7 @@
             "uid": "prometheus"
           },
           "expr": "sum by (name)(rate(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[5m])) * 8",
-          "legendFormat": "Download — {{name}}",
+          "legendFormat": "Download — {{ '{{name}}' }}",
           "refId": "A"
         },
         {
@@ -635,7 +635,7 @@
             "uid": "prometheus"
           },
           "expr": "sum by (name)(rate(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[5m])) * 8",
-          "legendFormat": "Upload — {{name}}",
+          "legendFormat": "Upload — {{ '{{name}}' }}",
           "refId": "B"
         }
       ],
@@ -725,7 +725,7 @@
           },
           "expr": "sum by (name)(increase(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[$__interval]))",
           "interval": "1d",
-          "legendFormat": "RX — {{name}}",
+          "legendFormat": "RX — {{ '{{name}}' }}",
           "refId": "A"
         },
         {
@@ -735,7 +735,7 @@
           },
           "expr": "sum by (name)(increase(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[$__interval]))",
           "interval": "1d",
-          "legendFormat": "TX — {{name}}",
+          "legendFormat": "TX — {{ '{{name}}' }}",
           "refId": "B"
         }
       ],
