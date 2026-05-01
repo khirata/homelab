@@ -101,6 +101,15 @@
     mode: "0644"
   tags: [dashboards]
 
+- name: Template Unifi WAN Traffic dashboard
+  ansible.builtin.template:
+    src: dashboards/unifi-wan-traffic.json.j2
+    dest: "{{ siem_config_dir }}/grafana-provisioning/dashboards/unifi-wan-traffic.json"
+    owner: root
+    group: root
+    mode: "0644"
+  tags: [dashboards]
+
 - name: Template Grafana alerting contact points
   ansible.builtin.template:
     src: grafana-alerting-contact-points.yaml.j2

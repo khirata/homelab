@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Unifi WAN traffic via Unpoller. Default time range = this month (now/M \u2192 now). Change to 7d / 24h / 1h for weekly / daily / hourly views. Requires a read-only 'unpoller' user in each Unifi controller.",
+  "description": "Unifi WAN traffic via Unpoller. Default time range = this month (now/M → now). Change to 7d / 24h / 1h for weekly / daily / hourly views. Requires a read-only 'unpoller' user in each Unifi controller.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -85,7 +85,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=~\"$device_site1\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=~\"$device_site1\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=\"{{ unifi_device_name_laf }}\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=\"{{ unifi_device_name_laf }}\"}[$__range]))",
           "instant": true,
           "legendFormat": "Total",
           "refId": "A"
@@ -158,7 +158,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=~\"$device_site2\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=~\"$device_site2\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=\"{{ unifi_device_name_sak }}\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=\"{{ unifi_device_name_sak }}\"}[$__range]))",
           "instant": true,
           "legendFormat": "Total",
           "refId": "A"
@@ -626,7 +626,7 @@
             "uid": "prometheus"
           },
           "expr": "sum by (name)(rate(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[5m])) * 8",
-          "legendFormat": "Download \u2014 {{name}}",
+          "legendFormat": "Download — {{name}}",
           "refId": "A"
         },
         {
@@ -635,11 +635,11 @@
             "uid": "prometheus"
           },
           "expr": "sum by (name)(rate(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[5m])) * 8",
-          "legendFormat": "Upload \u2014 {{name}}",
+          "legendFormat": "Upload — {{name}}",
           "refId": "B"
         }
       ],
-      "title": "WAN Bandwidth (Download \u2191 / Upload \u2193)",
+      "title": "WAN Bandwidth (Download ↑ / Upload ↓)",
       "type": "timeseries"
     },
     {
@@ -725,7 +725,7 @@
           },
           "expr": "sum by (name)(increase(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[$__interval]))",
           "interval": "1d",
-          "legendFormat": "RX \u2014 {{name}}",
+          "legendFormat": "RX — {{name}}",
           "refId": "A"
         },
         {
@@ -735,7 +735,7 @@
           },
           "expr": "sum by (name)(increase(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[$__interval]))",
           "interval": "1d",
-          "legendFormat": "TX \u2014 {{name}}",
+          "legendFormat": "TX — {{name}}",
           "refId": "B"
         }
       ],
@@ -768,50 +768,6 @@
         "options": [],
         "query": {
           "query": "label_values(unifi_device_wan_receive_bytes_total, source)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {},
-        "datasource": {
-          "type": "prometheus",
-          "uid": "prometheus"
-        },
-        "definition": "label_values(unifi_device_wan_receive_bytes_total, name)",
-        "hide": 0,
-        "includeAll": false,
-        "label": "Site 1 (laf) Device",
-        "multi": false,
-        "name": "device_site1",
-        "options": [],
-        "query": {
-          "query": "label_values(unifi_device_wan_receive_bytes_total, name)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {},
-        "datasource": {
-          "type": "prometheus",
-          "uid": "prometheus"
-        },
-        "definition": "label_values(unifi_device_wan_receive_bytes_total, name)",
-        "hide": 0,
-        "includeAll": false,
-        "label": "Site 2 (sak) Device",
-        "multi": false,
-        "name": "device_site2",
-        "options": [],
-        "query": {
-          "query": "label_values(unifi_device_wan_receive_bytes_total, name)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
