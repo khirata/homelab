@@ -85,7 +85,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=\"{{ unifi_device_name_laf }}\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=\"{{ unifi_device_name_laf }}\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=\"{{ unifi_device_name_site1 }}\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=\"{{ unifi_device_name_site1 }}\"}[$__range]))",
           "instant": true,
           "legendFormat": "Total",
           "refId": "A"
@@ -158,7 +158,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=\"{{ unifi_device_name_sak }}\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=\"{{ unifi_device_name_sak }}\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=\"{{ unifi_device_name_site2 }}\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=\"{{ unifi_device_name_site2 }}\"}[$__range]))",
           "instant": true,
           "legendFormat": "Total",
           "refId": "A"

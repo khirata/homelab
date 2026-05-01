@@ -26,8 +26,8 @@ vault_unifi_password_site1: "{{ lookup('env', 'UNIFI_PASSWORD_SITE1') }}"
 unifi_controller_url_site2: "{{ lookup('env', 'UNIFI_CONTROLLER_URL_SITE2') }}"
 vault_unifi_username_site2: "{{ lookup('env', 'UNIFI_USERNAME_SITE2') }}"
 vault_unifi_password_site2: "{{ lookup('env', 'UNIFI_PASSWORD_SITE2') }}"
-unifi_device_name_laf: "{{ lookup('env', 'UNIFI_DEVICE_NAME_LAF') }}"
-unifi_device_name_sak: "{{ lookup('env', 'UNIFI_DEVICE_NAME_SAK') }}"
+unifi_device_name_site1: "{{ lookup('env', 'UNIFI_DEVICE_NAME_SITE1') }}"
+unifi_device_name_site2: "{{ lookup('env', 'UNIFI_DEVICE_NAME_SITE2') }}"
 
 # =============================================================================
 # Directory layout (safe to commit)
