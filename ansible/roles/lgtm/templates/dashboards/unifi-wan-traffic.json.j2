@@ -85,14 +85,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=\"{{ unifi_device_name_site1 }}\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=\"{{ unifi_device_name_site1 }}\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{source=\"{{ unifi_controller_url_site1 | urlsplit('hostname') }}\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{source=\"{{ unifi_controller_url_site1 | urlsplit('hostname') }}\"}[$__range]))",
           "instant": true,
           "legendFormat": "Total",
           "refId": "A"
         }
       ],
       "timeFrom": "now/M",
-      "title": "Total WAN Traffic (MTD) — laf",
+      "title": "Total WAN Traffic (MTD) — {{ unifi_device_name_site1 }}",
       "type": "stat"
     },
     {
@@ -158,14 +158,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=\"{{ unifi_device_name_site2 }}\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=\"{{ unifi_device_name_site2 }}\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{source=\"{{ unifi_controller_url_site2 | urlsplit('hostname') }}\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{source=\"{{ unifi_controller_url_site2 | urlsplit('hostname') }}\"}[$__range]))",
           "instant": true,
           "legendFormat": "Total",
           "refId": "A"
         }
       ],
       "timeFrom": "now/M",
-      "title": "Total WAN Traffic (MTD) — sak",
+      "title": "Total WAN Traffic (MTD) — {{ unifi_device_name_site2 }}",
       "type": "stat"
     },
     {
@@ -793,5 +793,5 @@
   "timezone": "browser",
   "title": "Unifi WAN Traffic",
   "uid": "unifi-wan-traffic",
-  "version": 2
+  "version": 3
 }
