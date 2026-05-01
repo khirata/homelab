@@ -65,6 +65,8 @@ vault_unifi_password_site1: "ci-test-unifi-password"
 unifi_controller_url_site2: "https://10.0.11.1:443"
 vault_unifi_username_site2: "ci-unpoller"
 vault_unifi_password_site2: "ci-test-unifi-password"
+unifi_device_name_laf: "ci-gateway-laf"
+unifi_device_name_sak: "ci-gateway-sak"
 
 # --- PostgreSQL / Redis ---
 postgresql_version: "16"
