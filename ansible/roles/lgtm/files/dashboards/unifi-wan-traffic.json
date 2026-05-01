@@ -42,6 +42,152 @@
               },
               {
                 "color": "yellow",
+                "value": 800000000000
+              },
+              {
+                "color": "orange",
+                "value": 1000000000000
+              },
+              {
+                "color": "red",
+                "value": 1150000000000
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=~\"$device_site1\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=~\"$device_site1\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "Total",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": "now/M",
+      "title": "Total WAN Traffic (MTD) — laf",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 800000000000
+              },
+              {
+                "color": "orange",
+                "value": 1000000000000
+              },
+              {
+                "color": "red",
+                "value": 1150000000000
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=~\"$device_site2\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=~\"$device_site2\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "Total",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": "now/M",
+      "title": "Total WAN Traffic (MTD) — sak",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
                 "value": 10737418240
               },
               {
@@ -58,7 +204,7 @@
         "h": 5,
         "w": 6,
         "x": 0,
-        "y": 0
+        "y": 5
       },
       "id": 1,
       "options": {
@@ -126,7 +272,7 @@
         "h": 5,
         "w": 6,
         "x": 6,
-        "y": 0
+        "y": 5
       },
       "id": 2,
       "options": {
@@ -194,7 +340,7 @@
         "h": 5,
         "w": 6,
         "x": 12,
-        "y": 0
+        "y": 5
       },
       "id": 3,
       "options": {
@@ -262,7 +408,7 @@
         "h": 5,
         "w": 3,
         "x": 18,
-        "y": 0
+        "y": 5
       },
       "id": 4,
       "options": {
@@ -330,7 +476,7 @@
         "h": 5,
         "w": 3,
         "x": 21,
-        "y": 0
+        "y": 5
       },
       "id": 5,
       "options": {
@@ -455,7 +601,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 10
       },
       "id": 6,
       "options": {
@@ -554,7 +700,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 19
       },
       "id": 7,
       "options": {
@@ -622,6 +768,50 @@
         "options": [],
         "query": {
           "query": "label_values(unifi_device_wan_receive_bytes_total, source)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(unifi_device_wan_receive_bytes_total, name)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Site 1 (laf) Device",
+        "multi": false,
+        "name": "device_site1",
+        "options": [],
+        "query": {
+          "query": "label_values(unifi_device_wan_receive_bytes_total, name)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(unifi_device_wan_receive_bytes_total, name)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Site 2 (sak) Device",
+        "multi": false,
+        "name": "device_site2",
+        "options": [],
+        "query": {
+          "query": "label_values(unifi_device_wan_receive_bytes_total, name)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
