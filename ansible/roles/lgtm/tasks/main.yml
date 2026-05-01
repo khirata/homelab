@@ -108,7 +108,6 @@
     owner: root
     group: root
     mode: "0644"
-  notify: Restart LGTM stack
   tags: [dashboards]
 
 - name: Template Grafana alerting contact points
