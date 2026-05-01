@@ -67,6 +67,12 @@
         dest: "{{ render_dir }}/unpoller.conf"
         mode: "0600"
 
+    - name: Render unifi-wan-traffic.json dashboard
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/dashboards/unifi-wan-traffic.json.j2"
+        dest: "{{ render_dir }}/unifi-wan-traffic.json"
+        mode: "0644"
+
     # ── Alloy templates ───────────────────────────────────────────────────
 
     - name: Render alloy-server.alloy (server mode)
