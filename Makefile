@@ -1,4 +1,4 @@
-.PHONY: all clean deploy check install-deps backup test
+.PHONY: all clean deploy check install-deps backup test deploy-ntfy-client
 
 -include .env
 export
@@ -29,6 +29,10 @@ deploy-siem: _pre-deploy-backup
 ## Deploy only Grafana dashboards (no stack restart)
 deploy-dashboards:
 	ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --tags dashboards
+
+## Update ntfy-client.env on all hosts (after rotating NTFY_TOKEN)
+deploy-ntfy-client:
+	ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --tags ntfy_client_env
 
 _pre-deploy-backup:
 	@ssh $(SIEM_SERVER_USER)@$(SIEM_SERVER_IP) \
