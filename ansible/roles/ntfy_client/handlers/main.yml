@@ -8,4 +8,8 @@
   ansible.builtin.systemd:
     name: docker-event-notifier
     state: restarted
+  register: ntfy_client_docker_event_notifier_restart
+  failed_when:
+    - ntfy_client_docker_event_notifier_restart.failed
+    - "'Could not find the requested service' not in (ntfy_client_docker_event_notifier_restart.msg | default(''))"
   ignore_errors: "{{ ansible_check_mode }}"
