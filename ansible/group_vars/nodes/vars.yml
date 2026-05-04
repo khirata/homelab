@@ -1,0 +1,3 @@
+---
+# RPi textfile metrics — rpi-metrics (dotconfig) writes vcgencmd output here
+alloy_textfile_dir: /var/lib/node_exporter/textfile_collector
