@@ -30,7 +30,8 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "fixedColor": "text",
+            "mode": "fixed"
           },
           "mappings": [],
           "thresholds": {
@@ -39,14 +40,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 10737418240
-              },
-              {
-                "color": "red",
-                "value": 107374182400
               }
             ]
           },
@@ -57,12 +50,12 @@
       "gridPos": {
         "h": 5,
         "w": 6,
-        "x": 0,
+        "x": 6,
         "y": 0
       },
       "id": 1,
       "options": {
-        "colorMode": "background",
+        "colorMode": "none",
         "graphMode": "none",
         "justifyMode": "center",
         "orientation": "auto",
@@ -81,7 +74,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=~\"$name\"}[$__range]))",
           "instant": true,
           "legendFormat": "WAN Downloaded",
           "refId": "A"
@@ -98,7 +91,8 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "fixedColor": "text",
+            "mode": "fixed"
           },
           "mappings": [],
           "thresholds": {
@@ -107,14 +101,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 10737418240
-              },
-              {
-                "color": "red",
-                "value": 107374182400
               }
             ]
           },
@@ -125,12 +111,12 @@
       "gridPos": {
         "h": 5,
         "w": 6,
-        "x": 6,
+        "x": 12,
         "y": 0
       },
       "id": 2,
       "options": {
-        "colorMode": "background",
+        "colorMode": "none",
         "graphMode": "none",
         "justifyMode": "center",
         "orientation": "auto",
@@ -149,7 +135,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_transmit_bytes_total{name=~\"$name\"}[$__range]))",
           "instant": true,
           "legendFormat": "WAN Uploaded",
           "refId": "A"
@@ -178,11 +164,15 @@
               },
               {
                 "color": "yellow",
-                "value": 21474836480
+                "value": 700000000000
+              },
+              {
+                "color": "orange",
+                "value": 900000000000
               },
               {
                 "color": "red",
-                "value": 214748364800
+                "value": 1200000000000
               }
             ]
           },
@@ -193,7 +183,7 @@
       "gridPos": {
         "h": 5,
         "w": 6,
-        "x": 12,
+        "x": 0,
         "y": 0
       },
       "id": 3,
@@ -217,7 +207,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[$__range]))",
+          "expr": "sum(increase(unifi_device_wan_receive_bytes_total{name=~\"$name\"}[$__range])) + sum(increase(unifi_device_wan_transmit_bytes_total{name=~\"$name\"}[$__range]))",
           "instant": true,
           "legendFormat": "Total",
           "refId": "A"
@@ -285,7 +275,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[5m])) * 8",
+          "expr": "sum(rate(unifi_device_wan_receive_bytes_total{name=~\"$name\"}[5m])) * 8",
           "instant": true,
           "legendFormat": "Download",
           "refId": "A"
@@ -353,7 +343,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[5m])) * 8",
+          "expr": "sum(rate(unifi_device_wan_transmit_bytes_total{name=~\"$name\"}[5m])) * 8",
           "instant": true,
           "legendFormat": "Upload",
           "refId": "A"
@@ -479,7 +469,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (name)(rate(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[5m])) * 8",
+          "expr": "sum by (name)(rate(unifi_device_wan_receive_bytes_total{name=~\"$name\"}[5m])) * 8",
           "legendFormat": "Download \u2014 {{name}}",
           "refId": "A"
         },
@@ -488,7 +478,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (name)(rate(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[5m])) * 8",
+          "expr": "sum by (name)(rate(unifi_device_wan_transmit_bytes_total{name=~\"$name\"}[5m])) * 8",
           "legendFormat": "Upload \u2014 {{name}}",
           "refId": "B"
         }
@@ -577,7 +567,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (name)(increase(unifi_device_wan_receive_bytes_total{source=~\"$source\"}[$__interval]))",
+          "expr": "sum by (name)(increase(unifi_device_wan_receive_bytes_total{name=~\"$name\"}[$__interval]))",
           "interval": "1d",
           "legendFormat": "RX \u2014 {{name}}",
           "refId": "A"
@@ -587,7 +577,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (name)(increase(unifi_device_wan_transmit_bytes_total{source=~\"$source\"}[$__interval]))",
+          "expr": "sum by (name)(increase(unifi_device_wan_transmit_bytes_total{name=~\"$name\"}[$__interval]))",
           "interval": "1d",
           "legendFormat": "TX \u2014 {{name}}",
           "refId": "B"
@@ -613,15 +603,15 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(unifi_device_wan_receive_bytes_total, source)",
+        "definition": "label_values(unifi_device_wan_receive_bytes_total, name)",
         "hide": 0,
         "includeAll": true,
-        "label": "Device",
+        "label": "Name",
         "multi": true,
-        "name": "source",
+        "name": "name",
         "options": [],
         "query": {
-          "query": "label_values(unifi_device_wan_receive_bytes_total, source)",
+          "query": "label_values(unifi_device_wan_receive_bytes_total, name)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -632,7 +622,7 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now/M",
     "to": "now"
   },
   "timepicker": {
@@ -647,5 +637,5 @@
   "timezone": "browser",
   "title": "Unifi WAN Traffic",
   "uid": "unifi-wan-traffic",
-  "version": 1
+  "version": 3
 }
