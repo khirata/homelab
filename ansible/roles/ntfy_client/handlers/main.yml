@@ -3,3 +3,9 @@
   ansible.builtin.systemd:
     daemon_reload: true
   ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Restart docker-event-notifier
+  ansible.builtin.systemd:
+    name: docker-event-notifier
+    state: restarted
+  ignore_errors: "{{ ansible_check_mode }}"

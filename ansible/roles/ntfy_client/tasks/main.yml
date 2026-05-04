@@ -37,6 +37,7 @@
     group: root
     mode: "0600"
   no_log: true
+  notify: Restart docker-event-notifier
 
 - name: Create alloy systemd drop-in directory
   ansible.builtin.file:
