@@ -637,5 +637,5 @@
   "timezone": "browser",
   "title": "Unifi WAN Traffic",
   "uid": "unifi-wan-traffic",
-  "version": 2
+  "version": 3
 }
