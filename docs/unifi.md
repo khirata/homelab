@@ -51,3 +51,5 @@ sudo docker compose -f /opt/siem/config/docker-compose.lgtm.yml logs -f unpoller
 ```
 
 Metrics appear in Grafana → Dashboards → Unifi WAN / Node Traffic.
+
+**Note:** The Docker healthcheck is disabled for unpoller. The image is a minimal Go binary without `wget` or `curl`, so any `CMD`-based healthcheck fails with `executable file not found`. Liveness is observable via Prometheus scrape gaps in Grafana instead. See [PR #27](https://github.com/khirata/homelab/pull/27).
