@@ -9,15 +9,20 @@ docker events \
   --filter event=die \
   --filter event=oom \
   --filter event=health_status \
-  {% raw %}--format '{{.Actor.Attributes.name}} {{.Action}}'{% endraw %} \
-  | while IFS=' ' read -r name action; do
+  {% raw %}--format '{{.Actor.Attributes.name}} {{.Action}} {{.Actor.Attributes.exitCode}}'{% endraw %} \
+  | while IFS=' ' read -r name action exitcode; do
+      # Skip clean exits — one-shot containers (migrations, init jobs) exit 0 on success
+      if [[ "$action" == "die" && "$exitcode" == "0" ]]; then
+        continue
+      fi
+
       if [[ "$action" == "health_status: healthy" ]]; then
         MSG="Docker container '${name}' recovered on $(hostname)"
         TITLE="Container Up"
         PRIO="3"
         TAGS="white_check_mark"
       else
-        MSG="Docker container '${name}' ${action} on $(hostname)"
+        MSG="Docker container '${name}' ${action} (exit ${exitcode}) on $(hostname)"
         TITLE="Container Down"
         PRIO="4"
         TAGS="rotating_light"
