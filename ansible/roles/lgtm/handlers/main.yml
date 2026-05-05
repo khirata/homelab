@@ -4,3 +4,9 @@
     cmd: docker compose -f {{ siem_config_dir }}/docker-compose.lgtm.yml up -d --force-recreate
   changed_when: true
   ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Restart docker-event-notifier
+  ansible.builtin.systemd:
+    name: docker-event-notifier
+    state: restarted
+  ignore_errors: "{{ ansible_check_mode }}"
