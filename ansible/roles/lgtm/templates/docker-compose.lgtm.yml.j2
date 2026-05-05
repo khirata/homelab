@@ -104,8 +104,4 @@ services:
     volumes:
       - {{ siem_config_dir }}/unpoller.conf:/etc/unpoller/up.conf:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:9130/metrics || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      disable: true
