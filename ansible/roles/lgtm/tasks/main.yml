@@ -144,6 +144,7 @@
     owner: root
     group: root
     mode: "0755"
+  notify: Restart docker-event-notifier
 
 - name: Deploy docker-event-notifier systemd unit
   ansible.builtin.copy:
@@ -152,6 +153,7 @@
     owner: root
     group: root
     mode: "0644"
+  notify: Restart docker-event-notifier
 
 - name: Create docker systemd drop-in directory
   ansible.builtin.file:
