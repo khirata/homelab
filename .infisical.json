@@ -1,0 +1,5 @@
+{
+  "workspaceFile": ".infisical.json",
+  "defaultEnvironment": "prod",
+  "gitBranchToEnvironmentMapping": null
+}
