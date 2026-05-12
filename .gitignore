@@ -1,6 +1,7 @@
 .env
 .continue
 .vscode
+.claude/
 *.retry
 .ansible_cache/
 __pycache__/
