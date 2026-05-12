@@ -24,7 +24,7 @@ clean:
 
 ## Trigger a PostgreSQL backup on the remote server
 backup:
-	ssh $(SIEM_SERVER_USER)@$(SIEM_SERVER_IP) \
+	$(INFISICAL_RUN) ssh $$SIEM_SERVER_USER@$$SIEM_SERVER_IP \
 	  "sudo systemctl start pg-backup.service && journalctl -u pg-backup.service -n 20 --no-pager"
 
 ## Deploy the SIEM server stack (runs backup first if pg-backup.timer exists)
@@ -48,7 +48,7 @@ deploy-infisical:
 	ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --tags infisical
 
 _pre-deploy-backup:
-	@ssh $(SIEM_SERVER_USER)@$(SIEM_SERVER_IP) \
+	@$(INFISICAL_RUN) ssh $$SIEM_SERVER_USER@$$SIEM_SERVER_IP \
 	  "systemctl list-units --type=service --all | grep -q pg-backup.service \
 	   && sudo systemctl start pg-backup.service \
 	   && echo '[backup] pre-deploy snapshot complete' \
