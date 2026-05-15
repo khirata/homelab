@@ -94,13 +94,21 @@ services:
     # No published port — only reachable from nginx-cf-proxy on the Docker network
     environment:
       OPENSEARCH_HOSTS: "https://wazuh-indexer:9200"
-      WAZUH_API_URL: "https://host.docker.internal:{{ wazuh_api_port }}"
+      # Port is omitted here — the entrypoint writes `port: {{ wazuh_api_port }}` separately.
+      # Including the port in the URL causes a double-port construction
+      # (url:port:port) → TypeError [ERR_INVALID_URL] at runtime.
+      WAZUH_API_URL: "https://host.docker.internal"
+      API_PORT: "{{ wazuh_api_port }}"
       API_USERNAME: "{{ wazuh_manager_api_user }}"
       API_PASSWORD: "{{ vault_wazuh_api_password }}"
       # Entrypoint uses DASHBOARD_* to populate the OpenSearch Dashboards keystore.
       # INDEXER_* names are ignored; keystore falls back to "kibanaserver"/"kibanaserver" without these.
       DASHBOARD_USERNAME: kibanaserver
       DASHBOARD_PASSWORD: "{{ vault_wazuh_kibanaserver_password }}"
+      # With proxy auth the dashboard user has no Wazuh API account, so run_as would
+      # fail and mark the app inaccessible (OSD shows "Application Not Found").
+      # Use admin credentials for all API calls instead.
+      RUN_AS: "false"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
