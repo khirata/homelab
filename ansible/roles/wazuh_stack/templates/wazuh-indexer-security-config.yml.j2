@@ -13,6 +13,11 @@ config:
     http:
       anonymous_auth_enabled: false
       xff:
+        # xff.enabled: true so OpenSearch Security processes the X-Forwarded-For header.
+        # internalProxies: ".*" trusts all source IPs as proxy hops. A static
+        # x-forwarded-for: "127.0.0.1" is injected via opensearch.customHeaders in
+        # opensearch_dashboards.yml so that OpenSearch can resolve a "real" client IP
+        # from the XFF chain and trust the proxy auth headers (x-proxy-user / x-proxy-roles).
         enabled: true
         internalProxies: ".*"
     authc:

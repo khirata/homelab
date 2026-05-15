@@ -13,6 +13,15 @@ opensearch.ssl.verificationMode: certificate
 opensearch.ssl.certificateAuthorities:
   - /usr/share/wazuh-dashboard/certs/root-ca.pem
 
+# OpenSearch Security proxy auth requires an X-Forwarded-For header in every
+# backend call so it can resolve a "real" client IP from the XFF chain. Without
+# this, even when the direct connection (OSD container) is in internalProxies,
+# the proxy auth domain strips the x-proxy-user header and returns null username.
+# Using a loopback value is safe: the real client identity comes from x-proxy-user
+# (validated by nginx/CF Access JWT), not from the IP address.
+opensearch.customHeaders:
+  x-forwarded-for: "127.0.0.1"
+
 # Forward proxy auth headers to the OpenSearch backend when making scoped API calls.
 # By default OSD only forwards 'authorization'; without this, x-proxy-user/roles are
 # stripped and the indexer sees a null user, causing 401s.
