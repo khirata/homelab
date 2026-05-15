@@ -97,8 +97,10 @@ services:
       WAZUH_API_URL: "https://host.docker.internal:{{ wazuh_api_port }}"
       API_USERNAME: "{{ wazuh_manager_api_user }}"
       API_PASSWORD: "{{ vault_wazuh_api_password }}"
-      INDEXER_USERNAME: kibanaserver
-      INDEXER_PASSWORD: "{{ vault_wazuh_kibanaserver_password }}"
+      # Entrypoint uses DASHBOARD_* to populate the OpenSearch Dashboards keystore.
+      # INDEXER_* names are ignored; keystore falls back to "kibanaserver"/"kibanaserver" without these.
+      DASHBOARD_USERNAME: kibanaserver
+      DASHBOARD_PASSWORD: "{{ vault_wazuh_kibanaserver_password }}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

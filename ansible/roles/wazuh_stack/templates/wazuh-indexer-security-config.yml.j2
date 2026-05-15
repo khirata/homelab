@@ -13,7 +13,8 @@ config:
     http:
       anonymous_auth_enabled: false
       xff:
-        enabled: false
+        enabled: true
+        internalProxies: ".*"
     authc:
       proxy_auth_domain:
         description: "Trust x-proxy-user / x-proxy-roles headers from nginx CF proxy"

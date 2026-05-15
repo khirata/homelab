@@ -7,11 +7,20 @@ server.name: wazuh-dashboard
 
 opensearch.hosts:
   - https://wazuh-indexer:9200
-opensearch.username: kibanaserver
-opensearch.password: "${INDEXER_PASSWORD}"
+# opensearch.username / .password are set via keystore by the entrypoint
+# (DASHBOARD_USERNAME / DASHBOARD_PASSWORD env vars → opensearch-dashboards-keystore).
 opensearch.ssl.verificationMode: certificate
 opensearch.ssl.certificateAuthorities:
   - /usr/share/wazuh-dashboard/certs/root-ca.pem
+
+# Forward proxy auth headers to the OpenSearch backend when making scoped API calls.
+# By default OSD only forwards 'authorization'; without this, x-proxy-user/roles are
+# stripped and the indexer sees a null user, causing 401s.
+opensearch.requestHeadersWhitelist:
+  - authorization
+  - x-proxy-user
+  - x-proxy-roles
+  - x-forwarded-for
 
 # Proxy auth — trust x-proxy-user / x-proxy-roles injected by nginx-cf-proxy.
 # The nginx sidecar validates the Cloudflare Access JWT and injects these headers.
