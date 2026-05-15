@@ -9,7 +9,12 @@ all_access:
   reserved: false
   backend_roles:
     - admin
-  description: "Maps admin backend role to all_access"
+  users:
+    # kibanaserver needs all_access so the dashboard can manage wazuh-monitoring-*,
+    # wazuh-statistics-*, and other Wazuh plugin indices (kibana_server role alone
+    # only covers .kibana/.opensearch_dashboards index patterns).
+    - kibanaserver
+  description: "Maps admin backend role and kibanaserver user to all_access"
 
 own_index:
   reserved: false
