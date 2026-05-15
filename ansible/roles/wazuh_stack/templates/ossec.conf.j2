@@ -1,0 +1,164 @@
+<!-- Managed by Ansible — do not edit manually. -->
+<!-- Template: roles/wazuh_stack/templates/ossec.conf.j2 -->
+<ossec_config>
+
+  <global>
+    <jsonout_output>yes</jsonout_output>
+    <alerts_log>yes</alerts_log>
+    <logall>no</logall>
+    <logall_json>no</logall_json>
+    <email_notification>no</email_notification>
+    <agents_disconnection_time>10m</agents_disconnection_time>
+    <agents_disconnection_alert_time>0</agents_disconnection_alert_time>
+    <!-- Never block these IPs via active-response -->
+{% for ip in wazuh_active_response_whitelist %}
+    <white_list>{{ ip }}</white_list>
+{% endfor %}
+  </global>
+
+  <alerts>
+    <log_alert_level>3</log_alert_level>
+    <email_alert_level>12</email_alert_level>
+  </alerts>
+
+  <logging>
+    <log_format>plain</log_format>
+  </logging>
+
+  <remote>
+    <connection>secure</connection>
+    <port>{{ wazuh_agent_port }}</port>
+    <protocol>tcp</protocol>
+    <queue_size>131072</queue_size>
+  </remote>
+
+  <!-- Ship alerts to Wazuh Indexer. Manager connects via published 127.0.0.1:9200. -->
+  <indexer>
+    <enabled>yes</enabled>
+    <hosts>
+      <host>https://127.0.0.1:{{ wazuh_indexer_port }}</host>
+    </hosts>
+    <ssl>
+      <certificate_authorities>
+        <ca>{{ siem_config_dir }}/wazuh-indexer/certs/root-ca.pem</ca>
+      </certificate_authorities>
+      <certificate>{{ siem_config_dir }}/wazuh-indexer/certs/wazuh-server.pem</certificate>
+      <key>{{ siem_config_dir }}/wazuh-indexer/certs/wazuh-server-key.pem</key>
+    </ssl>
+  </indexer>
+
+  <rootcheck>
+    <disabled>no</disabled>
+    <check_files>yes</check_files>
+    <check_trojans>yes</check_trojans>
+    <check_dev>yes</check_dev>
+    <check_sys>yes</check_sys>
+    <check_pids>yes</check_pids>
+    <check_ports>yes</check_ports>
+    <check_if>yes</check_if>
+    <frequency>43200</frequency>
+    <rootkit_files>/var/ossec/etc/shared/rootkit_files.txt</rootkit_files>
+    <rootkit_trojans>/var/ossec/etc/shared/rootkit_trojans.txt</rootkit_trojans>
+    <skip_nfs>yes</skip_nfs>
+  </rootcheck>
+
+  <wodle name="syscollector">
+    <disabled>no</disabled>
+    <interval>1h</interval>
+    <scan_on_start>yes</scan_on_start>
+    <hardware>yes</hardware>
+    <os>yes</os>
+    <network>yes</network>
+    <packages>yes</packages>
+    <ports all="no">yes</ports>
+    <processes>yes</processes>
+  </wodle>
+
+  <wodle name="cis-cat">
+    <disabled>yes</disabled>
+  </wodle>
+
+  <wodle name="osquery">
+    <disabled>yes</disabled>
+  </wodle>
+
+  <sca>
+    <enabled>yes</enabled>
+    <scan_on_start>yes</scan_on_start>
+    <interval>12h</interval>
+    <skip_nfs>yes</skip_nfs>
+  </sca>
+
+  <vulnerability-detector>
+    <enabled>yes</enabled>
+    <interval>5m</interval>
+    <min_full_scan_interval>6h</min_full_scan_interval>
+    <run_on_start>yes</run_on_start>
+    <provider name="debian">
+      <enabled>yes</enabled>
+      <os>bookworm</os>
+      <os>bullseye</os>
+      <update_interval>1h</update_interval>
+    </provider>
+  </vulnerability-detector>
+
+  <ruleset>
+    <decoder_dir>ruleset/decoders</decoder_dir>
+    <rule_dir>ruleset/rules</rule_dir>
+    <rule_exclude>0215-policy_rules.xml</rule_exclude>
+    <list>etc/lists/audit-keys</list>
+    <list>etc/lists/amazon/aws-eventnames</list>
+    <list>etc/lists/security-eventchannel</list>
+    <!-- Custom rules and decoders -->
+    <decoder_dir>etc/decoders</decoder_dir>
+    <rule_dir>etc/rules</rule_dir>
+  </ruleset>
+
+  <rule_test>
+    <enabled>yes</enabled>
+    <threads>1</threads>
+    <max_sessions>64</max_sessions>
+    <session_timeout>15m</session_timeout>
+  </rule_test>
+
+  <auth>
+    <disabled>no</disabled>
+    <port>{{ wazuh_enrollment_port }}</port>
+    <use_source_ip>no</use_source_ip>
+    <purge>yes</purge>
+    <use_password>no</use_password>
+    <ssl_manager_cert>/var/ossec/etc/sslmanager.cert</ssl_manager_cert>
+    <ssl_manager_key>/var/ossec/etc/sslmanager.key</ssl_manager_key>
+    <ssl_auto_negotiate>no</ssl_auto_negotiate>
+  </auth>
+
+  <cluster>
+    <name>wazuh</name>
+    <node_name>wazuh-manager</node_name>
+    <node_type>master</node_type>
+    <key>1234567890abcdef1234567890abcdef</key>
+    <port>1516</port>
+    <bind_addr>0.0.0.0</bind_addr>
+    <nodes>
+      <node>127.0.0.1</node>
+    </nodes>
+    <hidden>no</hidden>
+    <disabled>yes</disabled>
+  </cluster>
+
+  <!-- Active response: drop IP for 10 minutes on SSH brute-force -->
+  <command>
+    <name>firewall-drop</name>
+    <executable>firewall-drop</executable>
+    <timeout_allowed>yes</timeout_allowed>
+  </command>
+
+  <active-response>
+    <command>firewall-drop</command>
+    <location>local</location>
+    <rules_id>100100</rules_id>
+    <timeout>600</timeout>
+  </active-response>
+
+
+</ossec_config>

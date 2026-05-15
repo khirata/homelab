@@ -1,0 +1,20 @@
+---
+# Inherited from group_vars/all/vars.yml — listed here for role-level documentation.
+# Override in group_vars or host_vars if needed.
+
+# wazuh_version: "4.14"          (apt package pin — major.minor only)
+# wazuh_docker_version: "4.14.5" (Docker image tag — full semver)
+# wazuh_api_port: 55000
+# wazuh_agent_port: 1514
+# wazuh_enrollment_port: 1515
+# wazuh_indexer_port: 9200
+# wazuh_dashboard_port: 5601
+# wazuh_cf_proxy_port: 5600
+# wazuh_indexer_heap: "4g"
+# wazuh_indexer_cluster_name: "wazuh-cluster"
+# wazuh_indexer_node_name: "wazuh-indexer-laf3"
+# wazuh_dashboard_external_url: ""
+# wazuh_active_response_whitelist: ["127.0.0.1"]
+# cloudflare_team_name: ""   (reused from LGTM role)
+# siem_config_dir: /opt/siem/config
+# siem_data_dir: /opt/siem/data

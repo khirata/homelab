@@ -15,6 +15,10 @@ smtp_host: "{{ lookup('env', 'SMTP_HOST') }}"
 smtp_from: "{{ lookup('env', 'SMTP_FROM') }}"
 smtp_starttls_policy: "{{ lookup('env', 'SMTP_STARTTLS_POLICY') }}"
 vault_wazuh_api_password: "{{ lookup('env', 'WAZUH_API_PASSWORD') }}"
+vault_wazuh_indexer_admin_password: "{{ lookup('env', 'WAZUH_INDEXER_ADMIN_PASSWORD') }}"
+vault_wazuh_kibanaserver_password: "{{ lookup('env', 'WAZUH_KIBANASERVER_PASSWORD') }}"
+vault_wazuh_indexer_admin_hash: "{{ lookup('env', 'WAZUH_INDEXER_ADMIN_HASH') }}"
+vault_wazuh_kibanaserver_hash: "{{ lookup('env', 'WAZUH_KIBANASERVER_HASH') }}"
 vault_postgresql_password: "{{ lookup('env', 'POSTGRESQL_PASSWORD') }}"
 vault_redis_password: "{{ lookup('env', 'REDIS_PASSWORD') }}"
 vault_infisical_encryption_key: "{{ lookup('env', 'INFISICAL_ENCRYPTION_KEY') }}"
@@ -47,6 +51,9 @@ unifi_syslog_port_sak: 515
 wazuh_agent_port: 1514
 wazuh_enrollment_port: 1515
 wazuh_api_port: 55000
+wazuh_indexer_port: 9200
+wazuh_dashboard_port: 5601
+wazuh_cf_proxy_port: 5600
 infisical_port: 8080
 redis_port: 6379
 
@@ -59,6 +66,13 @@ prometheus_version: "v3.3.0"
 alloy_version: "1.15.1"
 unpoller_version: "v2.11.2"
 wazuh_version: "4.14"
+wazuh_docker_version: "4.14.5"
+wazuh_indexer_heap: "4g"
+wazuh_indexer_cluster_name: "wazuh-cluster"
+wazuh_indexer_node_name: "wazuh-indexer-laf3"
+wazuh_dashboard_external_url: "{{ lookup('env', 'WAZUH_DASHBOARD_EXTERNAL_URL') | default('', true) }}"
+wazuh_active_response_whitelist:
+  - "127.0.0.1"
 infisical_version: "v0.146.0-postgres"
 postgresql_version: "16"
 redis_dashboard_id: 763

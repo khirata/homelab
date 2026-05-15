@@ -1,0 +1,61 @@
+<!-- Managed by Ansible — do not edit manually. -->
+<!-- Template: roles/wazuh_stack/templates/local_rules.xml.j2 -->
+
+<!-- SSH brute-force: fires active-response firewall-drop when >= 8 failures in 2 min.
+     Extends Wazuh's built-in rule 5760 (failed password for invalid user). -->
+<group name="local,syslog,sshd,">
+  <rule id="100100" level="12" frequency="8" timeframe="120">
+    <if_matched_sid>5760</if_matched_sid>
+    <description>SSH brute-force attack: 8+ failed logins in 2 minutes</description>
+    <group>authentication_failures,pci_dss_10.2.4,pci_dss_10.2.5,gdpr_IV_35.7.d,hipaa_164.312.b,nist_800_53_AU.14,nist_800_53_AC.7,tsc_CC6.1,tsc_CC6.8,tsc_CC7.2,tsc_CC7.3,</group>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+  </rule>
+
+  <!-- Also catch valid-user brute-force (rule 5716 parent) -->
+  <rule id="100101" level="12" frequency="8" timeframe="120">
+    <if_matched_sid>5716</if_matched_sid>
+    <description>SSH brute-force attack: 8+ failed logins in 2 minutes (valid user)</description>
+    <group>authentication_failures,pci_dss_10.2.4,pci_dss_10.2.5,</group>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- Sudo privilege escalation: alert when a non-root user runs a command via sudo. -->
+<group name="local,sudo,">
+  <rule id="100200" level="8">
+    <if_sid>5402</if_sid>
+    <description>Privileged command executed via sudo</description>
+    <group>privilege_escalation,pci_dss_10.2.5,pci_dss_10.2.2,gpg13_7.6,gdpr_IV_32.2,hipaa_164.312.b,nist_800_53_AU.14,tsc_CC6.8,</group>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+  </rule>
+
+  <!-- Escalation to root specifically -->
+  <rule id="100201" level="10">
+    <if_sid>100200</if_sid>
+    <match>sudo: .*: TTY=</match>
+    <description>User ran command as root via sudo</description>
+    <group>privilege_escalation,</group>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- Port scan detection: 20+ connection refused events from the same IP in 60s. -->
+<group name="local,recon,">
+  <rule id="100300" level="10" frequency="20" timeframe="60">
+    <if_matched_sid>1002</if_matched_sid>
+    <same_source_ip />
+    <description>Possible port scan: 20+ connection events from the same source in 60s</description>
+    <group>recon,pci_dss_11.4,nist_800_53_SI.4,tsc_CC6.1,tsc_CC6.8,</group>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+  </rule>
+</group>

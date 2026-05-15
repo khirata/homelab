@@ -1,0 +1,54 @@
+---
+# Bootstraps the OpenSearch Security index via securityadmin.sh (first deploy only).
+# Security config files (internal_users.yml, config.yml, roles_mapping.yml) are mounted
+# into the container at /usr/share/wazuh-indexer/config/opensearch-security/ and applied here.
+# A sentinel file prevents re-running on subsequent deploys.
+
+- name: Check if security config has been applied
+  ansible.builtin.stat:
+    path: "{{ siem_config_dir }}/wazuh-indexer/.security_applied"
+  register: wazuh_security_applied
+
+- name: Wait for wazuh-indexer container to become healthy
+  ansible.builtin.command:
+    cmd: docker inspect --format="{{ '{{' }}.State.Health.Status{{ '}}' }}" wazuh-indexer
+  register: wazuh_indexer_health
+  until: wazuh_indexer_health.stdout == "healthy"
+  retries: 40
+  delay: 15
+  changed_when: false
+  when:
+    - not wazuh_security_applied.stat.exists
+    - not ansible_check_mode
+
+- name: Run securityadmin.sh to bootstrap OpenSearch Security index
+  ansible.builtin.shell: |
+    docker exec --user root wazuh-indexer bash -c '
+      export JAVA_HOME=/usr/share/wazuh-indexer/jdk
+      export PATH=$JAVA_HOME/bin:$PATH
+      chmod 640 /usr/share/wazuh-indexer/config/certs/admin-key.pem
+      exec /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh \
+        -cd /usr/share/wazuh-indexer/config/opensearch-security/ \
+        -nhnv \
+        -cacert /usr/share/wazuh-indexer/config/certs/root-ca.pem \
+        -cert /usr/share/wazuh-indexer/config/certs/admin.pem \
+        -key /usr/share/wazuh-indexer/config/certs/admin-key.pem \
+        -p 9200 -icl
+    '
+  register: securityadmin_result
+  changed_when: "'Done with success' in securityadmin_result.stdout"
+  failed_when:
+    - securityadmin_result.rc != 0
+    - "'Done with success' not in securityadmin_result.stdout"
+  when:
+    - not wazuh_security_applied.stat.exists
+    - not ansible_check_mode
+
+- name: Write sentinel file after successful security bootstrap
+  ansible.builtin.file:
+    path: "{{ siem_config_dir }}/wazuh-indexer/.security_applied"
+    state: touch
+    mode: "0600"
+  when:
+    - not wazuh_security_applied.stat.exists
+    - not ansible_check_mode

@@ -1,0 +1,63 @@
+---
+# Installs and configures Wazuh-compatible Filebeat to ship manager alerts
+# from /var/ossec/logs/alerts/alerts.json → wazuh-indexer (OpenSearch).
+# Uses Wazuh's own filebeat 7.10.2 package (not Elastic's 8.x).
+
+- name: Install filebeat (Wazuh repo)
+  ansible.builtin.apt:
+    name: filebeat
+    state: present
+    update_cache: false
+  # Wazuh repo is already configured by the wazuh-manager package install.
+
+- name: Check if wazuh filebeat module is installed
+  ansible.builtin.stat:
+    path: /usr/share/filebeat/module/wazuh
+  register: wazuh_fb_module
+
+- name: Download and install Wazuh filebeat module
+  ansible.builtin.shell:
+    cmd: >
+      curl -sL https://packages.wazuh.com/4.x/filebeat/wazuh-filebeat-0.5.tar.gz
+      | tar -xvz -C /usr/share/filebeat/module
+    creates: /usr/share/filebeat/module/wazuh
+  when: not wazuh_fb_module.stat.exists
+
+- name: Download Wazuh index template
+  ansible.builtin.get_url:
+    url: "https://raw.githubusercontent.com/wazuh/wazuh/v{{ wazuh_docker_version }}/extensions/elasticsearch/7.x/wazuh-template.json"
+    dest: /etc/filebeat/wazuh-template.json
+    mode: "0644"
+    force: false
+
+- name: Template filebeat.yml
+  ansible.builtin.template:
+    src: filebeat.yml.j2
+    dest: /etc/filebeat/filebeat.yml
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart filebeat
+
+- name: Create filebeat keystore if missing
+  ansible.builtin.command:
+    cmd: filebeat keystore create
+    creates: /var/lib/filebeat/filebeat.keystore
+
+- name: Set indexer username in filebeat keystore
+  ansible.builtin.shell:
+    cmd: echo -n 'admin' | filebeat keystore add INDEXER_USERNAME --stdin --force
+  changed_when: false
+  no_log: true
+
+- name: Set indexer password in filebeat keystore
+  ansible.builtin.shell:
+    cmd: echo -n '{{ vault_wazuh_indexer_admin_password }}' | filebeat keystore add INDEXER_PASSWORD --stdin --force
+  changed_when: false
+  no_log: true
+
+- name: Enable and start filebeat
+  ansible.builtin.service:
+    name: filebeat
+    state: started
+    enabled: true
