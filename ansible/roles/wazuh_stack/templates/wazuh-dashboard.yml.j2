@@ -41,6 +41,13 @@ opensearch_security.proxycache.roles_header: "x-proxy-roles"
 # the CF Access JWT and the user gets a fresh session (no "Application Not Found" page).
 opensearch_security.proxycache.login_endpoint: "/"
 
+# Disable multitenancy — with proxy auth, user_requested_tenant is always null
+# (no login form to select a tenant), which causes the OpenSearch Security plugin
+# to fail silently before Wazuh's browser-side setup() can call
+# core.application.register(). The result is "Application Not Found" even though
+# server-side capabilities show wazuh: true.
+opensearch_security.multitenancy.enabled: false
+
 server.ssl.enabled: false
 
 logging.dest: stdout
