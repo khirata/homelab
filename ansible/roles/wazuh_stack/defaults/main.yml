@@ -10,6 +10,7 @@
 # wazuh_indexer_port: 9200
 # wazuh_dashboard_port: 5601
 # wazuh_cf_proxy_port: 5600
+# wazuh_debug_port: 5602      (LAN debug — no JWT check, fixed proxy user)
 # wazuh_indexer_heap: "4g"
 # wazuh_indexer_cluster_name: "wazuh-cluster"
 # wazuh_indexer_node_name: "wazuh-indexer-laf3"
