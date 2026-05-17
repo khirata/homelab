@@ -50,6 +50,15 @@ opensearch_security.multitenancy.enabled: false
 
 server.ssl.enabled: false
 
+# OSD's default script-src omits 'unsafe-inline', which blocks the inline
+# <script> block that the Wazuh plugin emits during app bootstrap. Without it
+# the browser silently drops the script and core.application.register() is
+# never called, producing "Application Not Found".
+csp.rules:
+  - "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
+  - "worker-src blob: 'self'"
+  - "style-src 'self' 'unsafe-inline'"
+
 logging.dest: stdout
 logging.silent: false
 logging.verbose: false
