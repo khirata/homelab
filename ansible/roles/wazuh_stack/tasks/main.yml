@@ -112,13 +112,15 @@
 
 - name: Set indexer username in wazuh-manager keystore
   ansible.builtin.shell:
-    cmd: echo 'admin' | /var/ossec/bin/wazuh-keystore -f indexer -k username
+    cmd: set -o pipefail && echo 'admin' | /var/ossec/bin/wazuh-keystore -f indexer -k username
+    executable: /bin/bash
   changed_when: false
   no_log: true
 
 - name: Set indexer password in wazuh-manager keystore
   ansible.builtin.shell:
-    cmd: echo '{{ vault_wazuh_indexer_admin_password }}' | /var/ossec/bin/wazuh-keystore -f indexer -k password
+    cmd: set -o pipefail && echo '{{ vault_wazuh_indexer_admin_password }}' | /var/ossec/bin/wazuh-keystore -f indexer -k password
+    executable: /bin/bash
   changed_when: false
   no_log: true
 
