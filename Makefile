@@ -1,4 +1,4 @@
-.PHONY: all clean deploy check install-deps backup test deploy-ntfy-client deploy-siem deploy-dashboards deploy-infisical env
+.PHONY: all clean deploy check install-deps backup test deploy-ntfy-client deploy-siem deploy-dashboards deploy-infisical redeploy-infisical env
 
 -include .env
 export
@@ -43,9 +43,14 @@ deploy-dashboards:
 deploy-ntfy-client:
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --tags ntfy_client_env
 
-## Deploy Infisical itself — uses .env directly (bootstrapping: Infisical isn't running yet)
+## Bootstrap Infisical — uses .env directly (first deploy, Infisical not yet running)
+## All secrets must be present in .env (not yet in Infisical).
 deploy-infisical:
-	ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --tags infisical
+	ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags infisical
+
+## Update a running Infisical — injects secrets from Infisical (use after initial bootstrap)
+redeploy-infisical:
+	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags infisical
 
 _pre-deploy-backup:
 	@$(INFISICAL_RUN) ssh $$SIEM_SERVER_USER@$$SIEM_SERVER_IP \

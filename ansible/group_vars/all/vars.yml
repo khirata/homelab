@@ -24,6 +24,11 @@ vault_redis_password: "{{ lookup('env', 'REDIS_PASSWORD') }}"
 vault_infisical_encryption_key: "{{ lookup('env', 'INFISICAL_ENCRYPTION_KEY') }}"
 vault_infisical_auth_secret: "{{ lookup('env', 'INFISICAL_AUTH_SECRET') }}"
 infisical_site_url: "{{ lookup('env', 'INFISICAL_SITE_URL') }}"
+# Public CF Tunnel URL (optional) — set SITE_URL to this for correct OAuth redirect URIs
+infisical_external_url: "{{ lookup('env', 'INFISICAL_EXTERNAL_URL') | default('', true) }}"
+# Google OAuth credentials (optional) — enables Sign in with Google
+vault_infisical_client_id_google: "{{ lookup('env', 'INFISICAL_CLIENT_ID_GOOGLE') | default('', true) }}"
+vault_infisical_client_secret_google: "{{ lookup('env', 'INFISICAL_CLIENT_SECRET_GOOGLE') | default('', true) }}"
 unifi_controller_url_site1: "{{ lookup('env', 'UNIFI_CONTROLLER_URL_SITE1') }}"
 vault_unifi_username_site1: "{{ lookup('env', 'UNIFI_USERNAME_SITE1') }}"
 vault_unifi_password_site1: "{{ lookup('env', 'UNIFI_PASSWORD_SITE1') }}"
