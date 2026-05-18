@@ -49,4 +49,5 @@
     - wazuh_manager
     - wazuh_stack
     - alloy        # server mode: receives Unifi syslog on UDP/514
-    - infisical
+    - role: infisical
+      tags: [infisical]
