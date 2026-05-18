@@ -139,7 +139,7 @@
     force_basic_auth: true
     validate_certs: false
     status_code: [200, 401]
-  register: wazuh_api_auth
+  register: wazuh_stack_api_auth
   changed_when: false
   no_log: true
 
@@ -153,14 +153,17 @@
     force_basic_auth: true
     validate_certs: false
     status_code: [200, 401]
-  register: wazuh_api_auth_default
+  register: wazuh_stack_api_auth_default
   changed_when: false
   no_log: true
-  when: wazuh_api_auth.status == 401
+  when: wazuh_stack_api_auth.status == 401
 
 - name: Set wazuh API JWT token fact
   ansible.builtin.set_fact:
-    wazuh_api_jwt: "{{ (wazuh_api_auth.json.data.token if wazuh_api_auth.status == 200 else wazuh_api_auth_default.json.data.token) | default('') }}"
+    wazuh_stack_api_jwt: >-
+      {{ (wazuh_stack_api_auth.json.data.token
+          if wazuh_stack_api_auth.status == 200
+          else wazuh_stack_api_auth_default.json.data.token) | default('') }}
   no_log: true
 
 - name: Set wazuh API user (id=1) password
@@ -168,7 +171,7 @@
     url: "https://localhost:{{ wazuh_api_port }}/security/users/1"
     method: PUT
     headers:
-      Authorization: "Bearer {{ wazuh_api_jwt }}"
+      Authorization: "Bearer {{ wazuh_stack_api_jwt }}"
     body_format: json
     body:
       password: "{{ vault_wazuh_api_password }}"
@@ -176,7 +179,7 @@
     status_code: [200]
   changed_when: false
   no_log: true
-  when: wazuh_api_jwt | length > 0
+  when: wazuh_stack_api_jwt | length > 0
 
 # --- wazuh-wui user (id=2) — uses its own JWT, not the wazuh user's ---
 - name: Get Wazuh API JWT for wazuh-wui user (vault password)
@@ -188,7 +191,7 @@
     force_basic_auth: true
     validate_certs: false
     status_code: [200, 401]
-  register: wazuh_api_auth_wui
+  register: wazuh_stack_api_auth_wui
   changed_when: false
   no_log: true
 
@@ -202,14 +205,17 @@
     force_basic_auth: true
     validate_certs: false
     status_code: [200, 401]
-  register: wazuh_api_auth_wui_default
+  register: wazuh_stack_api_auth_wui_default
   changed_when: false
   no_log: true
-  when: wazuh_api_auth_wui.status == 401
+  when: wazuh_stack_api_auth_wui.status == 401
 
 - name: Set wazuh-wui JWT token fact
   ansible.builtin.set_fact:
-    wazuh_api_jwt_wui: "{{ (wazuh_api_auth_wui.json.data.token if wazuh_api_auth_wui.status == 200 else wazuh_api_auth_wui_default.json.data.token) | default('') }}"
+    wazuh_stack_api_jwt_wui: >-
+      {{ (wazuh_stack_api_auth_wui.json.data.token
+          if wazuh_stack_api_auth_wui.status == 200
+          else wazuh_stack_api_auth_wui_default.json.data.token) | default('') }}
   no_log: true
 
 - name: Set wazuh-wui API user (id=2) password
@@ -217,7 +223,7 @@
     url: "https://localhost:{{ wazuh_api_port }}/security/users/2"
     method: PUT
     headers:
-      Authorization: "Bearer {{ wazuh_api_jwt_wui }}"
+      Authorization: "Bearer {{ wazuh_stack_api_jwt_wui }}"
     body_format: json
     body:
       password: "{{ vault_wazuh_api_password }}"
@@ -225,7 +231,7 @@
     status_code: [200]
   changed_when: false
   no_log: true
-  when: wazuh_api_jwt_wui | length > 0
+  when: wazuh_stack_api_jwt_wui | length > 0
 
 # --- Manager config (ossec.conf + rules + decoders) ---
 
@@ -270,8 +276,8 @@
 - name: Pull and start Wazuh stack
   ansible.builtin.command:
     cmd: docker compose -f {{ siem_config_dir }}/docker-compose.wazuh.yml up -d --pull always
-  register: wazuh_up
-  changed_when: "'Started' in wazuh_up.stdout or 'Created' in wazuh_up.stdout or 'Pulled' in wazuh_up.stdout"
+  register: wazuh_stack_up
+  changed_when: "'Started' in wazuh_stack_up.stdout or 'Created' in wazuh_stack_up.stdout or 'Pulled' in wazuh_stack_up.stdout"
   ignore_errors: "{{ ansible_check_mode }}"
 
 # --- One-time security bootstrap ---

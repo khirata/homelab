@@ -12,32 +12,32 @@
     path: "{{ siem_config_dir }}/wazuh-indexer/securityconfig/config.yml"
     checksum_algorithm: sha256
     get_checksum: true
-  register: wazuh_security_config_stat
+  register: wazuh_stack_security_config_stat
 
 - name: Check sentinel file (records last applied config.yml checksum)
   ansible.builtin.slurp:
     src: "{{ siem_config_dir }}/wazuh-indexer/.security_applied"
-  register: wazuh_security_sentinel
+  register: wazuh_stack_security_sentinel
   failed_when: false
 
 - name: Determine if security bootstrap is needed
   ansible.builtin.set_fact:
-    wazuh_security_needs_apply: >-
+    wazuh_stack_security_needs_apply: >-
       {{
-        not wazuh_security_sentinel.content is defined
-        or (wazuh_security_sentinel.content | b64decode | trim) != wazuh_security_config_stat.stat.checksum
+        not wazuh_stack_security_sentinel.content is defined
+        or (wazuh_stack_security_sentinel.content | b64decode | trim) != wazuh_stack_security_config_stat.stat.checksum
       }}
 
 - name: Wait for wazuh-indexer container to become healthy
   ansible.builtin.command:
     cmd: docker inspect --format="{{ '{{' }}.State.Health.Status{{ '}}' }}" wazuh-indexer
-  register: wazuh_indexer_health
-  until: wazuh_indexer_health.stdout == "healthy"
+  register: wazuh_stack_indexer_health
+  until: wazuh_stack_indexer_health.stdout == "healthy"
   retries: 40
   delay: 15
   changed_when: false
   when:
-    - wazuh_security_needs_apply | bool
+    - wazuh_stack_security_needs_apply | bool
     - not ansible_check_mode
 
 - name: Run securityadmin.sh to bootstrap OpenSearch Security index
@@ -54,20 +54,20 @@
         -key /usr/share/wazuh-indexer/config/certs/admin-key.pem \
         -p 9200 -icl
     '
-  register: securityadmin_result
-  changed_when: "'Done with success' in securityadmin_result.stdout"
+  register: wazuh_stack_securityadmin_result
+  changed_when: "'Done with success' in wazuh_stack_securityadmin_result.stdout"
   failed_when:
-    - securityadmin_result.rc != 0
-    - "'Done with success' not in securityadmin_result.stdout"
+    - wazuh_stack_securityadmin_result.rc != 0
+    - "'Done with success' not in wazuh_stack_securityadmin_result.stdout"
   when:
-    - wazuh_security_needs_apply | bool
+    - wazuh_stack_security_needs_apply | bool
     - not ansible_check_mode
 
 - name: Write sentinel file with applied config.yml checksum
   ansible.builtin.copy:
-    content: "{{ wazuh_security_config_stat.stat.checksum }}"
+    content: "{{ wazuh_stack_security_config_stat.stat.checksum }}"
     dest: "{{ siem_config_dir }}/wazuh-indexer/.security_applied"
     mode: "0600"
   when:
-    - wazuh_security_needs_apply | bool
+    - wazuh_stack_security_needs_apply | bool
     - not ansible_check_mode

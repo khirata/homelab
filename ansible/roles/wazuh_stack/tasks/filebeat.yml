@@ -13,7 +13,7 @@
 - name: Check if wazuh filebeat module is installed
   ansible.builtin.stat:
     path: /usr/share/filebeat/module/wazuh
-  register: wazuh_fb_module
+  register: wazuh_stack_fb_module
 
 - name: Download and install Wazuh filebeat module
   ansible.builtin.shell:
@@ -23,7 +23,7 @@
       | tar -xvz -C /usr/share/filebeat/module
     creates: /usr/share/filebeat/module/wazuh
     executable: /bin/bash
-  when: not wazuh_fb_module.stat.exists
+  when: not wazuh_stack_fb_module.stat.exists
 
 - name: Download Wazuh index template
   ansible.builtin.get_url:
