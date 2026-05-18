@@ -72,7 +72,7 @@ infisical secrets set INFISICAL_CLIENT_SECRET_GOOGLE=<secret> \
 **4. Re-deploy Infisical**
 
 ```bash
-make deploy-infisical
+make redeploy-infisical
 ```
 
 **5. Cloudflare Tunnel** (if exposing Infisical externally)
