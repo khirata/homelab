@@ -8,19 +8,17 @@ Agents (laf1, laf2)
     │  TCP 1515 (enrollment)
     ▼
 Wazuh Manager (systemd, laf3)
-    │  writes  /var/ossec/logs/alerts/alerts.json
-    │  HTTPS → 127.0.0.1:9200 (indexer output)
+    │  HTTPS → 127.0.0.1:9200 (native indexer output — no Filebeat needed)
+    │  also writes /var/ossec/logs/alerts/alerts.json (local archive)
     ▼
-wazuh-filebeat ─────────────────────────────────────────────┐
-                                                             │ HTTPS 9200
-wazuh-indexer  (OpenSearch, Docker, 127.0.0.1:9200) ◄───────┘
+wazuh-indexer  (OpenSearch, Docker, 127.0.0.1:9200)
     ▲
     │ HTTPS 9200
 wazuh-dashboard (OpenSearch Dashboards, Docker, internal only)
     ▲
     │ HTTP 5601 (Docker internal network)
 nginx-cf-proxy (Docker, 127.0.0.1:5600)
-    │  validates Cf-Access-Jwt-Assertion
+    │  validates Cf-Access-Jwt-Assertion via njs
     │  injects x-proxy-user / x-proxy-roles
     ▲
     │ HTTP (loopback)
@@ -35,6 +33,21 @@ Cloudflare Tunnel → Cloudflare Access SSO → User
 4. nginx injects `x-proxy-user: <email>` and `x-proxy-roles: admin` before proxying to dashboard
 5. Dashboard uses OpenSearch Security proxy auth mode — trusts those headers, shows no login form
 
+### Proxy auth design notes
+
+- **`opensearch_security.multitenancy.enabled: false`** — required. With proxy auth the login form
+  never appears, so `user_requested_tenant` is always null. The security plugin fails silently before
+  the Wazuh browser plugin can register its apps, producing "Application Not Found".
+- **`opensearch.customHeaders: x-forwarded-for: "127.0.0.1"`** — required. OpenSearch Security proxy
+  auth resolves the client's "real IP" from the XFF chain. Without this header every backend call
+  returns a null username and the request is rejected.
+- **`opensearch.requestHeadersWhitelist`** must include `x-proxy-user`, `x-proxy-roles`, and
+  `x-forwarded-for`. By default OSD only forwards `authorization`; omitting the others causes the
+  indexer to see a null user and return 401.
+- **nginx `proxy_set_header` inheritance** — server-level `proxy_set_header` directives are
+  **not inherited** when the `location` block defines its own `proxy_set_header` entries. All identity
+  headers (`x-proxy-user`, `x-proxy-roles`, `X-Forwarded-For`) must be set inside `location /`.
+
 ---
 
 ## Ports
@@ -47,6 +60,7 @@ Cloudflare Tunnel → Cloudflare Access SSO → User
 | 9200 | HTTPS | `127.0.0.1` | Indexer (OpenSearch) |
 | 5600 | HTTP | `127.0.0.1` | nginx CF proxy (Cloudflare Tunnel ingress) |
 | 5601 | HTTP | Docker internal | Dashboard (not published to host) |
+| 5602 | HTTP | `0.0.0.0` | LAN debug — no JWT check, fixed proxy user (**disabled by default**) |
 
 ---
 
@@ -54,7 +68,8 @@ Cloudflare Tunnel → Cloudflare Access SSO → User
 
 ### 1. Generate bcrypt hashes
 
-Before running `make deploy-siem`, generate hashes for the two indexer users and load them into Infisical:
+Before running `make deploy-siem`, generate hashes for the two indexer users and load them into
+Infisical:
 
 ```bash
 # Generate hash for WAZUH_INDEXER_ADMIN_PASSWORD
@@ -73,6 +88,7 @@ Store the resulting `$2y$12$...` strings as `WAZUH_INDEXER_ADMIN_HASH` and
 
 | Key | Description |
 |---|---|
+| `WAZUH_API_PASSWORD` | Wazuh Manager REST API password |
 | `WAZUH_INDEXER_ADMIN_PASSWORD` | OpenSearch admin password |
 | `WAZUH_KIBANASERVER_PASSWORD` | kibanaserver service account password |
 | `WAZUH_INDEXER_ADMIN_HASH` | bcrypt hash of admin password |
@@ -92,7 +108,8 @@ In the Cloudflare dashboard (one.dash.cloudflare.com):
    - Policy: email domain or specific emails
    - Identity provider: your SSO (Google, GitHub, etc.)
 
-After both are set, navigating to `https://wazuh.yourdomain.com` will prompt for Cloudflare Access SSO once, then land directly in the Wazuh Dashboard.
+After both are set, navigating to `https://wazuh.yourdomain.com` will prompt for Cloudflare Access
+SSO once, then land directly in the Wazuh Dashboard.
 
 ### 4. Deploy
 
@@ -101,7 +118,8 @@ make deploy-siem
 ```
 
 TLS certs are generated automatically on first deploy (`siem_config_dir/wazuh-indexer/certs/`).
-OpenSearch security config is applied once via `securityadmin.sh`; subsequent runs skip it.
+OpenSearch security config is applied once via `securityadmin.sh`; subsequent runs skip it unless
+`config.yml` changes (tracked by checksum sentinel).
 
 ---
 
@@ -114,10 +132,10 @@ ssh <user>@<siem-host>
 sudo systemctl status wazuh-manager
 sudo journalctl -u wazuh-manager -f
 
-# Indexer / Dashboard / Filebeat / nginx (Docker)
+# Indexer / Dashboard / nginx (Docker)
 docker compose -f /opt/siem/config/docker-compose.wazuh.yml ps
 docker compose -f /opt/siem/config/docker-compose.wazuh.yml logs -f wazuh-indexer
-docker compose -f /opt/siem/config/docker-compose.wazuh.yml logs -f wazuh-filebeat
+docker compose -f /opt/siem/config/docker-compose.wazuh.yml logs -f wazuh-dashboard
 
 # List registered agents
 sudo /var/ossec/bin/agent_control -l
@@ -132,7 +150,7 @@ curl -sk -u admin:<WAZUH_INDEXER_ADMIN_PASSWORD> \
 | Path | Contents |
 |---|---|
 | `/var/ossec/logs/ossec.log` | Manager daemon log |
-| `/var/ossec/logs/alerts/alerts.json` | Structured alerts (shipped to indexer) |
+| `/var/ossec/logs/alerts/alerts.json` | Structured alerts (local archive) |
 | `/var/ossec/queue/db/` | Agent event database |
 
 ---
@@ -181,7 +199,59 @@ Then re-run `make deploy-siem`. Existing data is preserved; only certs are repla
 
 ---
 
+## LAN debug endpoint (disabled by default)
+
+A second nginx server block on port 5602 bypasses Cloudflare JWT validation and injects a fixed
+`x-proxy-user: debug@local` / `x-proxy-roles: admin` identity. Useful for isolating auth issues
+from dashboard issues without needing a valid CF Access token.
+
+**To re-enable:**
+
+1. In `ansible/roles/wazuh_stack/templates/nginx-cf-proxy.conf.j2`, remove the
+   `{% if false %}` / `{% endif %}` wrapper around the debug server block.
+2. In `ansible/roles/wazuh_stack/templates/docker-compose.wazuh.yml.j2`, uncomment the
+   `wazuh_debug_port` line in the `nginx-cf-proxy` ports list.
+3. Re-deploy: `make deploy-siem`
+
+Access at `http://<siem-host>:5602` — no authentication required. **Do not expose on a public
+interface in production.**
+
+---
+
 ## Troubleshooting
+
+**"Application Not Found" after login**
+
+In Wazuh 4.14.x the main dashboard app ID changed from `wazuh` to `wz-home`. If the deployed
+`opensearch_dashboards.yml` still has `defaultRoute: /app/wazuh`, every browser session lands on
+OSD's "Application Not Found" page because no app with that ID is registered.
+
+```bash
+grep defaultRoute /opt/siem/config/wazuh-dashboard/opensearch_dashboards.yml
+# Must be: uiSettings.overrides.defaultRoute: /app/wz-home
+```
+
+Fix without a full re-deploy:
+```bash
+sudo sed -i 's|/app/wazuh|/app/wz-home|' /opt/siem/config/wazuh-dashboard/opensearch_dashboards.yml
+cd /opt/siem/config && sudo docker compose -f docker-compose.wazuh.yml restart wazuh-dashboard
+```
+
+**CSP "inline script blocked" in browser DevTools**
+
+Expected and harmless. OSD ships an intentional inline `<script>` in its HTML. A
+CSP-compliant browser blocks it — OSD detects the block and considers the browser "secure". If you
+add `'unsafe-inline'` to `script-src` to silence the DevTools warning, OSD's browser check inverts
+and shows **"Your browser does not meet the security requirements"**. Leave the CSP alone.
+
+**Dashboard returns 401 / session cookie immediately expires**
+
+Caused by nginx `proxy_set_header` inheritance. When a `location` block sets any
+`proxy_set_header` directive, it **cancels all server-level** `proxy_set_header` directives for that
+location. The result is that `x-proxy-user` and `x-proxy-roles` are stripped, the indexer sees a
+null user, and it clears the auth cookie (`Max-Age=0`).
+
+Fix: ensure all identity headers are inside `location /`, not at the `server` block level.
 
 **Indexer won't start — `max virtual memory areas` error**
 ```bash
@@ -193,13 +263,6 @@ sudo sysctl -w vm.max_map_count=262144   # already set by Ansible; verify with s
 docker logs wazuh-dashboard | grep -i error
 # Check indexer health first:
 curl -sk -u admin:<pw> https://127.0.0.1:9200/_cluster/health
-```
-
-**Filebeat not shipping alerts**
-```bash
-docker logs wazuh-filebeat | tail -50
-# Verify the mount exists on the host:
-ls -la /var/ossec/logs/alerts/alerts.json
 ```
 
 **nginx returns 401 — Cloudflare JWT missing**

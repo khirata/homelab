@@ -143,7 +143,7 @@ services:
       - wazuh
     ports:
       - "127.0.0.1:{{ wazuh_cf_proxy_port }}:{{ wazuh_cf_proxy_port }}"
-      - "0.0.0.0:{{ wazuh_debug_port }}:{{ wazuh_debug_port }}"   # LAN debug — no JWT check
+      # - "0.0.0.0:{{ wazuh_debug_port }}:{{ wazuh_debug_port }}"   # LAN debug (disabled — enable with debug server block in nginx-cf-proxy.conf.j2)
     volumes:
       - type: bind
         source: {{ siem_config_dir }}/nginx-cf-proxy/nginx.conf

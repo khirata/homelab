@@ -20,11 +20,15 @@ http {
     error_log  /dev/stderr warn;
 
     # -------------------------------------------------------------------------
-    # DEBUG server — LAN-only, no JWT validation.
+    # DEBUG server — LAN-only, no JWT validation. DISABLED by default.
+    # To re-enable: remove the {% if false %} / {% endif %} wrapper below,
+    # and uncomment the debug port binding in docker-compose.wazuh.yml.j2.
+    #
     # Binds on 0.0.0.0:{{ wazuh_debug_port }} so you can reach the dashboard
-    # directly from the local network (http://laf3.local:{{ wazuh_debug_port }}).
+    # directly from the local network (http://<host>:{{ wazuh_debug_port }}).
     # Injects a fixed proxy identity so OpenSearch Security accepts the request.
     # -------------------------------------------------------------------------
+{% if false %}
     server {
         listen {{ wazuh_debug_port }};
         server_name _;
@@ -47,6 +51,7 @@ http {
             proxy_send_timeout  300s;
         }
     }
+{% endif %}
 
     server {
         listen {{ wazuh_cf_proxy_port }};
