@@ -1,0 +1,46 @@
+---
+# Called by certs.yml in a loop. Each step guards with `creates:` for idempotency.
+# loop_var: wazuh_cert_component  (keys: name, san)
+
+- name: "Generate private key for {{ wazuh_cert_component.name }}"
+  ansible.builtin.command:
+    cmd: >
+      openssl genrsa -out
+      {{ siem_config_dir }}/wazuh-indexer/certs/{{ wazuh_cert_component.name }}-key.pem 2048
+    creates: "{{ siem_config_dir }}/wazuh-indexer/certs/{{ wazuh_cert_component.name }}-key.pem"
+
+- name: "Generate CSR for {{ wazuh_cert_component.name }}"
+  ansible.builtin.command:
+    cmd: >
+      openssl req -new -sha256
+      -key {{ siem_config_dir }}/wazuh-indexer/certs/{{ wazuh_cert_component.name }}-key.pem
+      -out /tmp/{{ wazuh_cert_component.name }}.csr
+      -subj "/C=US/O=Wazuh/CN={{ wazuh_cert_component.name }}"
+    creates: "/tmp/{{ wazuh_cert_component.name }}.csr"
+
+- name: "Write SAN ext file for {{ wazuh_cert_component.name }}"
+  ansible.builtin.copy:
+    content: "subjectAltName={{ wazuh_cert_component.san }}\n"
+    dest: "/tmp/{{ wazuh_cert_component.name }}.ext"
+    mode: "0600"
+
+- name: "Sign cert for {{ wazuh_cert_component.name }}"
+  ansible.builtin.command:
+    cmd: >
+      openssl x509 -req -sha256
+      -in /tmp/{{ wazuh_cert_component.name }}.csr
+      -CA {{ siem_config_dir }}/wazuh-indexer/certs/root-ca.pem
+      -CAkey {{ siem_config_dir }}/wazuh-indexer/certs/root-ca-key.pem
+      -CAcreateserial
+      -out {{ siem_config_dir }}/wazuh-indexer/certs/{{ wazuh_cert_component.name }}.pem
+      -days 3650
+      -extfile /tmp/{{ wazuh_cert_component.name }}.ext
+    creates: "{{ siem_config_dir }}/wazuh-indexer/certs/{{ wazuh_cert_component.name }}.pem"
+
+- name: "Remove temp files for {{ wazuh_cert_component.name }}"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/{{ wazuh_cert_component.name }}.csr"
+    - "/tmp/{{ wazuh_cert_component.name }}.ext"

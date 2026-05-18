@@ -1,0 +1,73 @@
+---
+# Bootstraps the OpenSearch Security index via securityadmin.sh.
+# Security config files (internal_users.yml, config.yml, roles_mapping.yml) are mounted
+# into the container at /usr/share/wazuh-indexer/config/opensearch-security/ and applied here.
+#
+# Runs on first deploy (no sentinel) OR whenever config.yml changes (checksum mismatch).
+# NOTE: sed -i replaces the file inode, breaking Docker bind mounts. Use Python in-place
+# writes to edit securityconfig files on the host to avoid this.
+
+- name: Compute checksum of deployed config.yml
+  ansible.builtin.stat:
+    path: "{{ siem_config_dir }}/wazuh-indexer/securityconfig/config.yml"
+    checksum_algorithm: sha256
+    get_checksum: true
+  register: wazuh_stack_security_config_stat
+
+- name: Check sentinel file (records last applied config.yml checksum)
+  ansible.builtin.slurp:
+    src: "{{ siem_config_dir }}/wazuh-indexer/.security_applied"
+  register: wazuh_stack_security_sentinel
+  failed_when: false
+
+- name: Determine if security bootstrap is needed
+  ansible.builtin.set_fact:
+    wazuh_stack_security_needs_apply: >-
+      {{
+        not wazuh_stack_security_sentinel.content is defined
+        or (wazuh_stack_security_sentinel.content | b64decode | trim) != wazuh_stack_security_config_stat.stat.checksum
+      }}
+
+- name: Wait for wazuh-indexer container to become healthy
+  ansible.builtin.command:
+    cmd: docker inspect --format="{{ '{{' }}.State.Health.Status{{ '}}' }}" wazuh-indexer
+  register: wazuh_stack_indexer_health
+  until: wazuh_stack_indexer_health.stdout == "healthy"
+  retries: 40
+  delay: 15
+  changed_when: false
+  when:
+    - wazuh_stack_security_needs_apply | bool
+    - not ansible_check_mode
+
+- name: Run securityadmin.sh to bootstrap OpenSearch Security index
+  ansible.builtin.shell: |
+    docker exec --user root wazuh-indexer bash -c '
+      export JAVA_HOME=/usr/share/wazuh-indexer/jdk
+      export PATH=$JAVA_HOME/bin:$PATH
+      chmod 640 /usr/share/wazuh-indexer/config/certs/admin-key.pem
+      exec /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh \
+        -cd /usr/share/wazuh-indexer/config/opensearch-security/ \
+        -nhnv \
+        -cacert /usr/share/wazuh-indexer/config/certs/root-ca.pem \
+        -cert /usr/share/wazuh-indexer/config/certs/admin.pem \
+        -key /usr/share/wazuh-indexer/config/certs/admin-key.pem \
+        -p 9200 -icl
+    '
+  register: wazuh_stack_securityadmin_result
+  changed_when: "'Done with success' in wazuh_stack_securityadmin_result.stdout"
+  failed_when:
+    - wazuh_stack_securityadmin_result.rc != 0
+    - "'Done with success' not in wazuh_stack_securityadmin_result.stdout"
+  when:
+    - wazuh_stack_security_needs_apply | bool
+    - not ansible_check_mode
+
+- name: Write sentinel file with applied config.yml checksum
+  ansible.builtin.copy:
+    content: "{{ wazuh_stack_security_config_stat.stat.checksum }}"
+    dest: "{{ siem_config_dir }}/wazuh-indexer/.security_applied"
+    mode: "0600"
+  when:
+    - wazuh_stack_security_needs_apply | bool
+    - not ansible_check_mode

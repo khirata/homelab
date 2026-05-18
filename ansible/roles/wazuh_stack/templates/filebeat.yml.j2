@@ -1,0 +1,33 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/wazuh_stack/templates/filebeat.yml.j2
+# Ships Wazuh Manager alerts (/var/ossec/logs/alerts/alerts.json)
+# to the Wazuh Indexer via the Wazuh filebeat module.
+
+filebeat.modules:
+  - module: wazuh
+    alerts:
+      enabled: true
+    archives:
+      enabled: false
+
+setup.template.json.enabled: true
+setup.template.json.path: /etc/filebeat/wazuh-template.json
+setup.template.json.name: wazuh
+setup.template.overwrite: true
+setup.ilm.enabled: false
+
+# Credentials are stored in the filebeat keystore (not in this file).
+# To update: filebeat keystore add username --force && filebeat keystore add password --force
+output.elasticsearch:
+  hosts:
+    - "https://127.0.0.1:{{ wazuh_indexer_port | default(9200) }}"
+  protocol: https
+  username: ${INDEXER_USERNAME}
+  password: ${INDEXER_PASSWORD}
+  ssl.certificate_authorities:
+    - {{ siem_config_dir }}/wazuh-indexer/certs/root-ca.pem
+  ssl.certificate: {{ siem_config_dir }}/wazuh-indexer/certs/wazuh-server.pem
+  ssl.key: {{ siem_config_dir }}/wazuh-indexer/certs/wazuh-server-key.pem
+
+logging.level: warning
+logging.to_files: false

@@ -1,0 +1,57 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/wazuh_stack/templates/wazuh-dashboard.yml.j2
+
+server.host: 0.0.0.0
+server.port: 5601
+server.name: wazuh-dashboard
+
+opensearch.hosts:
+  - https://wazuh-indexer:9200
+# opensearch.username / .password are set via keystore by the entrypoint
+# (DASHBOARD_USERNAME / DASHBOARD_PASSWORD env vars → opensearch-dashboards-keystore).
+opensearch.ssl.verificationMode: certificate
+opensearch.ssl.certificateAuthorities:
+  - /usr/share/wazuh-dashboard/certs/root-ca.pem
+
+# OpenSearch Security proxy auth requires an X-Forwarded-For header in every
+# backend call so it can resolve a "real" client IP from the XFF chain. Without
+# this, even when the direct connection (OSD container) is in internalProxies,
+# the proxy auth domain strips the x-proxy-user header and returns null username.
+# Using a loopback value is safe: the real client identity comes from x-proxy-user
+# (validated by nginx/CF Access JWT), not from the IP address.
+opensearch.customHeaders:
+  x-forwarded-for: "127.0.0.1"
+
+# Forward proxy auth headers to the OpenSearch backend when making scoped API calls.
+# By default OSD only forwards 'authorization'; without this, x-proxy-user/roles are
+# stripped and the indexer sees a null user, causing 401s.
+opensearch.requestHeadersWhitelist:
+  - authorization
+  - x-proxy-user
+  - x-proxy-roles
+  - x-forwarded-for
+
+# Proxy auth — trust x-proxy-user / x-proxy-roles injected by nginx-cf-proxy.
+# The nginx sidecar validates the Cloudflare Access JWT and injects these headers.
+# No login form is shown; authentication is fully delegated to Cloudflare Access.
+opensearch_security.auth.type: "proxy"
+opensearch_security.proxycache.user_header: "x-proxy-user"
+opensearch_security.proxycache.roles_header: "x-proxy-roles"
+# When a stale/invalid cookie is detected, redirect back to / so nginx re-injects
+# the CF Access JWT and the user gets a fresh session (no "Application Not Found" page).
+opensearch_security.proxycache.login_endpoint: "/"
+
+# Disable multitenancy — with proxy auth, user_requested_tenant is always null
+# (no login form to select a tenant), which causes the OpenSearch Security plugin
+# to fail silently before Wazuh's browser-side setup() can call
+# core.application.register(). The result is "Application Not Found" even though
+# server-side capabilities show wazuh: true.
+opensearch_security.multitenancy.enabled: false
+
+server.ssl.enabled: false
+
+logging.dest: stdout
+logging.silent: false
+logging.verbose: false
+
+uiSettings.overrides.defaultRoute: /app/wz-home

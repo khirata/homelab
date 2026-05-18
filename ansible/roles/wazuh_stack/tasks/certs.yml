@@ -1,0 +1,83 @@
+---
+# Generates Wazuh PKI certs using openssl. Each command is idempotent via `creates:`.
+
+- name: Create certs directory
+  ansible.builtin.file:
+    path: "{{ siem_config_dir }}/wazuh-indexer/certs"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Generate root CA private key
+  ansible.builtin.command:
+    cmd: >
+      openssl genrsa -out
+      {{ siem_config_dir }}/wazuh-indexer/certs/root-ca-key.pem 2048
+    creates: "{{ siem_config_dir }}/wazuh-indexer/certs/root-ca-key.pem"
+
+- name: Write root CA openssl config (explicit CA:TRUE required by Java PKIX)
+  ansible.builtin.copy:
+    dest: /tmp/wazuh-root-ca.cnf
+    mode: "0600"
+    content: |
+      [req]
+      distinguished_name = req_distinguished_name
+      x509_extensions    = v3_ca
+      prompt             = no
+      [req_distinguished_name]
+      C  = US
+      O  = Wazuh
+      CN = root-ca
+      [v3_ca]
+      basicConstraints = critical,CA:TRUE
+      keyUsage         = critical,keyCertSign,cRLSign
+      subjectKeyIdentifier = hash
+
+- name: Generate root CA certificate
+  ansible.builtin.command:
+    cmd: >
+      openssl req -new -x509 -sha256
+      -key {{ siem_config_dir }}/wazuh-indexer/certs/root-ca-key.pem
+      -out {{ siem_config_dir }}/wazuh-indexer/certs/root-ca.pem
+      -days 3650
+      -config /tmp/wazuh-root-ca.cnf
+    creates: "{{ siem_config_dir }}/wazuh-indexer/certs/root-ca.pem"
+
+- name: Remove root CA openssl config
+  ansible.builtin.file:
+    path: /tmp/wazuh-root-ca.cnf
+    state: absent
+
+- name: Generate certs for wazuh-indexer, wazuh-dashboard, wazuh-server, admin
+  ansible.builtin.include_tasks: certs_component.yml
+  loop:
+    - name: wazuh-indexer
+      san: "IP:127.0.0.1,DNS:wazuh-indexer"
+    - name: wazuh-dashboard
+      san: "DNS:wazuh-dashboard"
+    - name: wazuh-server
+      san: "IP:127.0.0.1"
+    - name: admin
+      san: "DNS:admin"
+  loop_control:
+    loop_var: wazuh_cert_component
+
+- name: Set permissions on all cert/key files (0644 — containers run as UID 1000, not root)
+  ansible.builtin.file:
+    path: "{{ siem_config_dir }}/wazuh-indexer/certs/{{ item }}"
+    mode: "0644"
+    owner: root
+    group: root
+  loop:
+    - root-ca.pem
+    - root-ca-key.pem
+    - wazuh-indexer.pem
+    - wazuh-indexer-key.pem
+    - wazuh-dashboard.pem
+    - wazuh-dashboard-key.pem
+    - wazuh-server.pem
+    - wazuh-server-key.pem
+    - admin.pem
+    - admin-key.pem
+  ignore_errors: "{{ ansible_check_mode }}"

@@ -1,0 +1,23 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/wazuh_stack/templates/wazuh-indexer-internal-users.yml.j2
+#
+# Bcrypt hashes generated with:
+#   docker run --rm wazuh/wazuh-indexer:{{ wazuh_version }} \
+#     bash plugins/opensearch-security/tools/hash.sh -p <password>
+# Store resulting hash in Infisical as WAZUH_INDEXER_ADMIN_HASH / WAZUH_KIBANASERVER_HASH.
+
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+admin:
+  hash: "{{ vault_wazuh_indexer_admin_hash }}"
+  reserved: true
+  backend_roles:
+    - admin
+  description: "Admin user"
+
+kibanaserver:
+  hash: "{{ vault_wazuh_kibanaserver_hash }}"
+  reserved: true
+  description: "Wazuh Dashboard service account"

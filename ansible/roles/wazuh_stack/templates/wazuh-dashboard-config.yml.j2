@@ -1,0 +1,11 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/wazuh_stack/templates/wazuh-dashboard-config.yml.j2
+# Wazuh dashboard plugin — points to the manager REST API.
+
+hosts:
+  - default:
+      url: https://host.docker.internal
+      port: {{ wazuh_api_port }}
+      username: {{ wazuh_manager_api_user }}
+      password: "{{ vault_wazuh_api_password }}"
+      run_as: false

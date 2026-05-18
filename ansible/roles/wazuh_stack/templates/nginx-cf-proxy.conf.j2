@@ -1,0 +1,89 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/wazuh_stack/templates/nginx-cf-proxy.conf.j2
+#
+# Listens on 127.0.0.1:{{ wazuh_cf_proxy_port }} (Cloudflare Tunnel ingress).
+# Decodes the Cloudflare Access JWT via njs, extracts the email claim, and injects
+# x-proxy-user / x-proxy-roles headers before proxying to the Wazuh Dashboard.
+# The dashboard uses OpenSearch Security proxy auth and shows no login form.
+
+load_module modules/ngx_http_js_module.so;
+
+events {
+    worker_connections 512;
+}
+
+http {
+    js_import /etc/nginx/njs/cf_jwt.js;
+    js_set $cf_proxy_user cf_jwt.getEmail;
+
+    access_log /dev/stdout;
+    error_log  /dev/stderr warn;
+
+    # -------------------------------------------------------------------------
+    # DEBUG server — LAN-only, no JWT validation. DISABLED by default.
+    # To re-enable: remove the {% if false %} / {% endif %} wrapper below,
+    # and uncomment the debug port binding in docker-compose.wazuh.yml.j2.
+    #
+    # Binds on 0.0.0.0:{{ wazuh_debug_port }} so you can reach the dashboard
+    # directly from the local network (http://<host>:{{ wazuh_debug_port }}).
+    # Injects a fixed proxy identity so OpenSearch Security accepts the request.
+    # -------------------------------------------------------------------------
+{% if false %}
+    server {
+        listen {{ wazuh_debug_port }};
+        server_name _;
+
+        location / {
+            proxy_pass          http://wazuh-dashboard:5601;
+            proxy_http_version  1.1;
+            proxy_set_header    Host              $host;
+            proxy_set_header    X-Real-IP         $remote_addr;
+            proxy_set_header    X-Forwarded-For   "127.0.0.1";
+            proxy_set_header    X-Forwarded-Proto $scheme;
+            # Identity headers must be in the location block — server-level
+            # proxy_set_header directives are NOT inherited when the location
+            # block defines its own proxy_set_header entries (nginx override rule).
+            proxy_set_header    x-proxy-user      "debug@local";
+            proxy_set_header    x-proxy-roles     "admin";
+            proxy_set_header    Upgrade           $http_upgrade;
+            proxy_set_header    Connection        "upgrade";
+            proxy_read_timeout  300s;
+            proxy_send_timeout  300s;
+        }
+    }
+{% endif %}
+
+    server {
+        listen {{ wazuh_cf_proxy_port }};
+        server_name _;
+
+        # Reject requests with no valid Cloudflare Access JWT
+        if ($cf_proxy_user = '') {
+            return 401 "Unauthorized: missing or invalid Cloudflare Access token\n";
+        }
+
+        # Strip inbound proxy headers to prevent spoofing from untrusted sources
+        proxy_set_header x-proxy-user "";
+        proxy_set_header x-proxy-roles "";
+
+        location / {
+            proxy_pass          http://wazuh-dashboard:5601;
+            proxy_http_version  1.1;
+            proxy_set_header    Host              $host;
+            proxy_set_header    X-Real-IP         $remote_addr;
+            proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header    X-Forwarded-Proto $scheme;
+
+            # Inject identity from decoded JWT
+            proxy_set_header    x-proxy-user  $cf_proxy_user;
+            proxy_set_header    x-proxy-roles "admin";
+
+            # WebSocket support (Wazuh Dashboard uses it)
+            proxy_set_header    Upgrade    $http_upgrade;
+            proxy_set_header    Connection "upgrade";
+
+            proxy_read_timeout  300s;
+            proxy_send_timeout  300s;
+        }
+    }
+}

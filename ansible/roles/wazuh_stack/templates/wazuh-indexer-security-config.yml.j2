@@ -1,0 +1,46 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/wazuh_stack/templates/wazuh-indexer-security-config.yml.j2
+#
+# Enables proxy auth domain so the nginx sidecar can inject x-proxy-user / x-proxy-roles
+# headers and have them trusted by OpenSearch Security without a login prompt.
+
+_meta:
+  type: "config"
+  config_version: 2
+
+config:
+  dynamic:
+    http:
+      anonymous_auth_enabled: false
+      xff:
+        # xff.enabled: true so OpenSearch Security processes the X-Forwarded-For header.
+        # internalProxies: ".*" trusts all source IPs as proxy hops. A static
+        # x-forwarded-for: "127.0.0.1" is injected via opensearch.customHeaders in
+        # opensearch_dashboards.yml so that OpenSearch can resolve a "real" client IP
+        # from the XFF chain and trust the proxy auth headers (x-proxy-user / x-proxy-roles).
+        enabled: true
+        internalProxies: ".*"
+    authc:
+      proxy_auth_domain:
+        description: "Trust x-proxy-user / x-proxy-roles headers from nginx CF proxy"
+        http_enabled: true
+        transport_enabled: false
+        order: 0
+        http_authenticator:
+          type: proxy
+          challenge: false
+          config:
+            user_header: "x-proxy-user"
+            roles_header: "x-proxy-roles"
+        authentication_backend:
+          type: noop
+      basic_internal_auth_domain:
+        description: "Authenticate via HTTP basic against internal users (for filebeat + dashboard service account)"
+        http_enabled: true
+        transport_enabled: true
+        order: 1
+        http_authenticator:
+          type: basic
+          challenge: false
+        authentication_backend:
+          type: intern

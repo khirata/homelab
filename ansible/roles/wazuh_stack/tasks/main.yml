@@ -1,0 +1,293 @@
+---
+# vm.max_map_count required by OpenSearch
+- name: Set vm.max_map_count for OpenSearch
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+    reload: true
+
+- name: Create wazuh-indexer data directory (UID 1000 — opensearch user in image)
+  ansible.builtin.file:
+    path: "{{ siem_data_dir }}/wazuh-indexer"
+    state: directory
+    owner: "1000"
+    group: "1000"
+    mode: "0755"
+
+- name: Create config directories
+  ansible.builtin.file:
+    path: "{{ siem_config_dir }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - wazuh-indexer
+    - wazuh-indexer/securityconfig
+    - wazuh-dashboard
+    - nginx-cf-proxy
+    - nginx-cf-proxy/njs
+
+- name: Generate TLS certificates
+  ansible.builtin.include_tasks: certs.yml
+
+# --- Indexer config ---
+
+- name: Template opensearch.yml (wazuh-indexer)
+  ansible.builtin.template:
+    src: wazuh-indexer.yml.j2
+    dest: "{{ siem_config_dir }}/wazuh-indexer/opensearch.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart wazuh stack
+
+# --- Indexer security config (mounted into container; applied by securityadmin.sh) ---
+
+- name: Template internal_users.yml (indexer security)
+  ansible.builtin.template:
+    src: wazuh-indexer-internal-users.yml.j2
+    dest: "{{ siem_config_dir }}/wazuh-indexer/securityconfig/internal_users.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Template config.yml (indexer security — proxy auth)
+  ansible.builtin.template:
+    src: wazuh-indexer-security-config.yml.j2
+    dest: "{{ siem_config_dir }}/wazuh-indexer/securityconfig/config.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Template roles_mapping.yml (indexer security)
+  ansible.builtin.template:
+    src: wazuh-indexer-roles-mapping.yml.j2
+    dest: "{{ siem_config_dir }}/wazuh-indexer/securityconfig/roles_mapping.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+# --- Dashboard config ---
+
+- name: Template opensearch_dashboards.yml (wazuh-dashboard)
+  ansible.builtin.template:
+    src: wazuh-dashboard.yml.j2
+    dest: "{{ siem_config_dir }}/wazuh-dashboard/opensearch_dashboards.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart wazuh stack
+
+# wazuh.yml is NOT templated here — the dashboard container's entrypoint
+# (wazuh_app_config.sh) creates it from WAZUH_API_URL / API_USERNAME / API_PASSWORD
+# env vars. Mounting it read-only prevents the entrypoint from writing and crashes the
+# container. The env vars are sufficient for single-node homelab use.
+
+# --- nginx CF proxy config ---
+
+- name: Template nginx.conf (Cloudflare Access proxy)
+  ansible.builtin.template:
+    src: nginx-cf-proxy.conf.j2
+    dest: "{{ siem_config_dir }}/nginx-cf-proxy/nginx.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart wazuh stack
+
+- name: Template cf_jwt.js (njs JWT decoder)
+  ansible.builtin.template:
+    src: cf_jwt.js.j2
+    dest: "{{ siem_config_dir }}/nginx-cf-proxy/njs/cf_jwt.js"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart wazuh stack
+
+# --- Manager indexer keystore (credentials for native indexer-connector) ---
+# wazuh-keystore stores the admin username/password used by wazuh-analysisd to
+# ship alerts and inventory data to the OpenSearch indexer. Must be set before
+# or after each manager start; the keystore is persistent on disk.
+
+- name: Set indexer username in wazuh-manager keystore
+  ansible.builtin.shell:
+    cmd: set -o pipefail && echo 'admin' | /var/ossec/bin/wazuh-keystore -f indexer -k username
+    executable: /bin/bash
+  changed_when: false
+  no_log: true
+
+- name: Set indexer password in wazuh-manager keystore
+  ansible.builtin.shell:
+    cmd: set -o pipefail && echo '{{ vault_wazuh_indexer_admin_password }}' | /var/ossec/bin/wazuh-keystore -f indexer -k password
+    executable: /bin/bash
+  changed_when: false
+  no_log: true
+
+# --- Wazuh API user passwords ---
+# The Wazuh API ships with default passwords; set them to vault secrets on every run.
+# Each user can only change their own password in Wazuh API 4.x, so we obtain a
+# separate JWT per user and use it to update that user's own record.
+
+# --- wazuh user (id=1) ---
+- name: Get Wazuh API JWT for wazuh user (vault password)
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_api_port }}/security/user/authenticate"
+    method: POST
+    url_username: "{{ wazuh_manager_api_user }}"
+    url_password: "{{ vault_wazuh_api_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: [200, 401]
+  register: wazuh_stack_api_auth
+  changed_when: false
+  no_log: true
+
+# First deploy: wazuh user default password is "wazuh"
+- name: Get Wazuh API JWT for wazuh user (default password, first deploy)
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_api_port }}/security/user/authenticate"
+    method: POST
+    url_username: "{{ wazuh_manager_api_user }}"
+    url_password: wazuh  # pragma: allowlist secret — Wazuh default, changed on first run
+    force_basic_auth: true
+    validate_certs: false
+    status_code: [200, 401]
+  register: wazuh_stack_api_auth_default
+  changed_when: false
+  no_log: true
+  when: wazuh_stack_api_auth.status == 401
+
+- name: Set wazuh API JWT token fact
+  ansible.builtin.set_fact:
+    wazuh_stack_api_jwt: >-
+      {{ (wazuh_stack_api_auth.json.data.token
+          if wazuh_stack_api_auth.status == 200
+          else wazuh_stack_api_auth_default.json.data.token) | default('') }}
+  no_log: true
+
+- name: Set wazuh API user (id=1) password
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_api_port }}/security/users/1"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ wazuh_stack_api_jwt }}"
+    body_format: json
+    body:
+      password: "{{ vault_wazuh_api_password }}"
+    validate_certs: false
+    status_code: [200]
+  changed_when: false
+  no_log: true
+  when: wazuh_stack_api_jwt | length > 0
+
+# --- wazuh-wui user (id=2) — uses its own JWT, not the wazuh user's ---
+- name: Get Wazuh API JWT for wazuh-wui user (vault password)
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_api_port }}/security/user/authenticate"
+    method: POST
+    url_username: wazuh-wui
+    url_password: "{{ vault_wazuh_api_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: [200, 401]
+  register: wazuh_stack_api_auth_wui
+  changed_when: false
+  no_log: true
+
+# First deploy: wazuh-wui default password is "wazuh-wui"
+- name: Get Wazuh API JWT for wazuh-wui user (default password, first deploy)
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_api_port }}/security/user/authenticate"
+    method: POST
+    url_username: wazuh-wui
+    url_password: wazuh-wui  # pragma: allowlist secret — Wazuh default, changed on first run
+    force_basic_auth: true
+    validate_certs: false
+    status_code: [200, 401]
+  register: wazuh_stack_api_auth_wui_default
+  changed_when: false
+  no_log: true
+  when: wazuh_stack_api_auth_wui.status == 401
+
+- name: Set wazuh-wui JWT token fact
+  ansible.builtin.set_fact:
+    wazuh_stack_api_jwt_wui: >-
+      {{ (wazuh_stack_api_auth_wui.json.data.token
+          if wazuh_stack_api_auth_wui.status == 200
+          else wazuh_stack_api_auth_wui_default.json.data.token) | default('') }}
+  no_log: true
+
+- name: Set wazuh-wui API user (id=2) password
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_api_port }}/security/users/2"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ wazuh_stack_api_jwt_wui }}"
+    body_format: json
+    body:
+      password: "{{ vault_wazuh_api_password }}"
+    validate_certs: false
+    status_code: [200]
+  changed_when: false
+  no_log: true
+  when: wazuh_stack_api_jwt_wui | length > 0
+
+# --- Manager config (ossec.conf + rules + decoders) ---
+
+- name: Template ossec.conf
+  ansible.builtin.template:
+    src: ossec.conf.j2
+    dest: /var/ossec/etc/ossec.conf
+    owner: wazuh
+    group: wazuh
+    mode: "0660"
+  notify: Restart wazuh-manager
+
+- name: Template local_rules.xml
+  ansible.builtin.template:
+    src: local_rules.xml.j2
+    dest: /var/ossec/etc/rules/local_rules.xml
+    owner: wazuh
+    group: wazuh
+    mode: "0660"
+  notify: Restart wazuh-manager
+
+- name: Template local_decoder.xml
+  ansible.builtin.template:
+    src: local_decoder.xml.j2
+    dest: /var/ossec/etc/decoders/local_decoder.xml
+    owner: wazuh
+    group: wazuh
+    mode: "0660"
+  notify: Restart wazuh-manager
+
+# --- Docker Compose ---
+
+- name: Template docker-compose.wazuh.yml
+  ansible.builtin.template:
+    src: docker-compose.wazuh.yml.j2
+    dest: "{{ siem_config_dir }}/docker-compose.wazuh.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart wazuh stack
+
+- name: Pull and start Wazuh stack
+  ansible.builtin.command:
+    cmd: docker compose -f {{ siem_config_dir }}/docker-compose.wazuh.yml up -d --pull always
+  register: wazuh_stack_up
+  changed_when: "'Started' in wazuh_stack_up.stdout or 'Created' in wazuh_stack_up.stdout or 'Pulled' in wazuh_stack_up.stdout"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# --- One-time security bootstrap ---
+
+- name: Apply OpenSearch security config (first deploy only)
+  ansible.builtin.include_tasks: security.yml
+
+# --- Filebeat: ships manager alerts to the indexer ---
+# wazuh-analysisd does NOT directly connect to OpenSearch in 4.14.x;
+# Filebeat (Wazuh's 7.10.2 build) reads alerts.json and ships to the indexer.
+
+- name: Install and configure Filebeat (alert shipping)
+  ansible.builtin.include_tasks: filebeat.yml

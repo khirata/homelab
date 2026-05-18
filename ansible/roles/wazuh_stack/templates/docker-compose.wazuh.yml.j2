@@ -1,0 +1,158 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/wazuh_stack/templates/docker-compose.wazuh.yml.j2
+#
+# Alert shipping: wazuh-manager (native systemd) → indexer via ossec.conf <indexer> stanza.
+# Filebeat is not needed; native indexer output was introduced in Wazuh 4.3.
+#
+# Mount layout for wazuh-indexer:
+#   The entrypoint hardcodes OPENSEARCH_PATH_CONF=/usr/share/wazuh-indexer/config, so all
+#   config files and certs must land under config/. Security files are mounted individually
+#   so the container's default action_groups/roles/etc. remain intact.
+
+networks:
+  wazuh:
+    driver: bridge
+
+services:
+  wazuh-indexer:
+    image: wazuh/wazuh-indexer:{{ wazuh_docker_version }}
+    container_name: wazuh-indexer
+    restart: unless-stopped
+    networks:
+      - wazuh
+    ports:
+      - "127.0.0.1:{{ wazuh_indexer_port }}:9200"
+    environment:
+      OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_indexer_heap }} -Xmx{{ wazuh_indexer_heap }}"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - type: bind
+        source: {{ siem_data_dir }}/wazuh-indexer
+        target: /var/lib/wazuh-indexer
+      # opensearch.yml goes into config/ — that's what the entrypoint uses
+      - type: bind
+        source: {{ siem_config_dir }}/wazuh-indexer/opensearch.yml
+        target: /usr/share/wazuh-indexer/config/opensearch.yml
+        read_only: true
+      # Certs go into config/certs/ — paths are relative to OPENSEARCH_PATH_CONF
+      - type: bind
+        source: {{ siem_config_dir }}/wazuh-indexer/certs/root-ca.pem
+        target: /usr/share/wazuh-indexer/config/certs/root-ca.pem
+        read_only: true
+      - type: bind
+        source: {{ siem_config_dir }}/wazuh-indexer/certs/wazuh-indexer.pem
+        target: /usr/share/wazuh-indexer/config/certs/wazuh-indexer.pem
+        read_only: true
+      - type: bind
+        source: {{ siem_config_dir }}/wazuh-indexer/certs/wazuh-indexer-key.pem
+        target: /usr/share/wazuh-indexer/config/certs/wazuh-indexer-key.pem
+        read_only: true
+      - type: bind
+        source: {{ siem_config_dir }}/wazuh-indexer/certs/admin.pem
+        target: /usr/share/wazuh-indexer/config/certs/admin.pem
+        read_only: true
+      - type: bind
+        source: {{ siem_config_dir }}/wazuh-indexer/certs/admin-key.pem
+        target: /usr/share/wazuh-indexer/config/certs/admin-key.pem
+        read_only: true
+      # Override specific security config files; remaining defaults stay from the image
+      - type: bind
+        source: {{ siem_config_dir }}/wazuh-indexer/securityconfig/internal_users.yml
+        target: /usr/share/wazuh-indexer/config/opensearch-security/internal_users.yml
+        read_only: true
+      - type: bind
+        source: {{ siem_config_dir }}/wazuh-indexer/securityconfig/config.yml
+        target: /usr/share/wazuh-indexer/config/opensearch-security/config.yml
+        read_only: true
+      - type: bind
+        source: {{ siem_config_dir }}/wazuh-indexer/securityconfig/roles_mapping.yml
+        target: /usr/share/wazuh-indexer/config/opensearch-security/roles_mapping.yml
+        read_only: true
+    healthcheck:
+      # Check that the node responds (any HTTP status is fine pre-securityadmin).
+      # curl exits 0 for any HTTP response including 401 (unauthenticated).
+      test:
+        - CMD-SHELL
+        - curl -sk https://localhost:9200 -o /dev/null
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  wazuh-dashboard:
+    image: wazuh/wazuh-dashboard:{{ wazuh_docker_version }}
+    container_name: wazuh-dashboard
+    restart: unless-stopped
+    networks:
+      - wazuh
+    # No published port — only reachable from nginx-cf-proxy on the Docker network
+    environment:
+      OPENSEARCH_HOSTS: "https://wazuh-indexer:9200"
+      # Port is omitted here — the entrypoint writes `port: {{ wazuh_api_port }}` separately.
+      # Including the port in the URL causes a double-port construction
+      # (url:port:port) → TypeError [ERR_INVALID_URL] at runtime.
+      WAZUH_API_URL: "https://host.docker.internal"
+      API_PORT: "{{ wazuh_api_port }}"
+      API_USERNAME: "{{ wazuh_manager_api_user }}"
+      API_PASSWORD: "{{ vault_wazuh_api_password }}"
+      # Entrypoint uses DASHBOARD_* to populate the OpenSearch Dashboards keystore.
+      # INDEXER_* names are ignored; keystore falls back to "kibanaserver"/"kibanaserver" without these.
+      DASHBOARD_USERNAME: kibanaserver
+      DASHBOARD_PASSWORD: "{{ vault_wazuh_kibanaserver_password }}"
+      # With proxy auth the dashboard user has no Wazuh API account, so run_as would
+      # fail and mark the app inaccessible (OSD shows "Application Not Found").
+      # Use admin credentials for all API calls instead.
+      RUN_AS: "false"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - type: bind
+        source: {{ siem_config_dir }}/wazuh-dashboard/opensearch_dashboards.yml
+        target: /usr/share/wazuh-dashboard/config/opensearch_dashboards.yml
+        read_only: true
+      # wazuh.yml is NOT mounted here — the entrypoint's wazuh_app_config.sh
+      # creates it from WAZUH_API_URL / API_USERNAME / API_PASSWORD env vars.
+      - type: bind
+        source: {{ siem_config_dir }}/wazuh-indexer/certs/root-ca.pem
+        target: /usr/share/wazuh-dashboard/certs/root-ca.pem
+        read_only: true
+    depends_on:
+      wazuh-indexer:
+        condition: service_started
+    healthcheck:
+      # Just verify the HTTP server is up. Full auth works after securityadmin runs.
+      test:
+        - CMD-SHELL
+        - curl -sk http://localhost:5601 -o /dev/null
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+
+  nginx-cf-proxy:
+    image: nginx:alpine
+    container_name: wazuh-nginx-cf-proxy
+    restart: unless-stopped
+    networks:
+      - wazuh
+    ports:
+      - "127.0.0.1:{{ wazuh_cf_proxy_port }}:{{ wazuh_cf_proxy_port }}"
+      # - "0.0.0.0:{{ wazuh_debug_port }}:{{ wazuh_debug_port }}"   # LAN debug (disabled — enable with debug server block in nginx-cf-proxy.conf.j2)
+    volumes:
+      - type: bind
+        source: {{ siem_config_dir }}/nginx-cf-proxy/nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+      - type: bind
+        source: {{ siem_config_dir }}/nginx-cf-proxy/njs
+        target: /etc/nginx/njs
+        read_only: true
+    depends_on:
+      wazuh-dashboard:
+        condition: service_started
