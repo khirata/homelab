@@ -1,0 +1,6 @@
+[ntfy]
+url = http://laf2.local:{{ ntfy_port }}/{{ ntfy_topic }}
+{% if ntfy_cloud_topic %}
+cloud_url = https://ntfy.sh/{{ ntfy_cloud_topic }}
+{% endif %}
+token = {{ ntfy_token }}

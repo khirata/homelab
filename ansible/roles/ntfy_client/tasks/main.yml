@@ -1,16 +1,50 @@
 ---
+- name: Ensure python3 is installed
+  ansible.builtin.apt:
+    name: python3
+    state: present
+
+# Keep curl for any scripts that call it directly (e.g. docker-event-notifier)
 - name: Ensure curl is installed
   ansible.builtin.apt:
     name: curl
     state: present
 
-- name: Deploy ntfy notification script
-  ansible.builtin.template:
-    src: ntfy-notify.sh.j2
-    dest: /usr/local/bin/ntfy-notify.sh
+- name: Deploy ntfy-send Python script
+  ansible.builtin.copy:
+    src: ntfy-send
+    dest: /usr/local/bin/ntfy-send
     owner: root
     group: root
     mode: "0755"
+
+- name: Create ntfy-clear symlink
+  ansible.builtin.file:
+    src: /usr/local/bin/ntfy-send
+    dest: /usr/local/bin/ntfy-clear
+    state: link
+
+- name: Deploy ntfy-client.conf
+  ansible.builtin.template:
+    src: ntfy-client.conf.j2
+    dest: /etc/ntfy-client.conf
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  tags: [ntfy_client_env]
+
+# Keep env file — docker-event-notifier reads NTFY_TOKEN from it
+- name: Deploy ntfy client env file
+  ansible.builtin.template:
+    src: ntfy-client.env.j2
+    dest: /etc/ntfy-client.env
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  tags: [ntfy_client_env]
+  notify: Restart docker-event-notifier
 
 - name: Deploy notify-ntfy@ systemd template unit
   ansible.builtin.copy:
@@ -21,23 +55,16 @@
     mode: "0644"
   notify: Reload systemd
 
-- name: Deploy ntfy clear script
-  ansible.builtin.template:
-    src: ntfy-clear.sh.j2
-    dest: /usr/local/bin/ntfy-clear.sh
-    owner: root
-    group: root
-    mode: "0755"
+# Remove old bash wrapper scripts (replaced by ntfy-send)
+- name: Remove legacy ntfy-notify.sh
+  ansible.builtin.file:
+    path: /usr/local/bin/ntfy-notify.sh
+    state: absent
 
-- name: Deploy ntfy client env file
-  ansible.builtin.template:
-    src: ntfy-client.env.j2
-    dest: /etc/ntfy-client.env
-    owner: root
-    group: root
-    mode: "0600"
-  no_log: true
-  notify: Restart docker-event-notifier
+- name: Remove legacy ntfy-clear.sh
+  ansible.builtin.file:
+    path: /usr/local/bin/ntfy-clear.sh
+    state: absent
 
 - name: Create alloy systemd drop-in directory
   ansible.builtin.file:

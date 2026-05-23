@@ -5,6 +5,7 @@
   vars:
     ansible_remote_tmp: /tmp
   roles:
+    - ntfy_client
     - alloy
 
 - name: Ntfy notification servers

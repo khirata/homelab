@@ -4,5 +4,10 @@ After=network.target
 
 [Service]
 Type=oneshot
-EnvironmentFile=-/etc/ntfy-client.env
-ExecStart=/usr/local/bin/ntfy-notify.sh "%i" "%H"
+ExecStart=/usr/local/bin/ntfy-send \
+  --key "%i" \
+  --title "Service Down" \
+  --message "Service %i failed on %H" \
+  --priority high \
+  --tags warning \
+  --watch-service "%i"

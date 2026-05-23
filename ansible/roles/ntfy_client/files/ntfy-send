@@ -1,0 +1,448 @@
+#!/usr/bin/env python3
+"""
+ntfy-send — General-purpose Ntfy notification CLI with deduplication and failover.
+
+Action is determined from argv[0]:
+  ntfy-send   — publish a notification (creates dedup lock)
+  ntfy-clear  — send recovery notification and clear dedup lock
+
+Config  /etc/ntfy-client.conf  (overridden by env vars NTFY_URL, NTFY_CLOUD_URL, NTFY_TOKEN)
+Locks   /var/run/ntfy_lock/    (ephemeral; recreated on reboot)
+Log     /var/log/ntfy-send.log
+
+Usage examples:
+  ntfy-send -k httpd -t "Web server down" -m "httpd failed on $(hostname)" -p high --tags warning
+  ntfy-clear -k httpd -m "httpd recovered on $(hostname)"
+  ntfy-send -k disk-alert -m "Disk >90%" --threshold 3
+  ntfy-send -k alloy.service -m "alloy failed" --watch-service alloy.service
+"""
+
+import argparse
+import configparser
+import hashlib
+import logging
+import os
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+from urllib.error import URLError
+from urllib.request import Request, urlopen
+
+LOCK_DIR = Path("/var/run/ntfy_lock")
+CONFIG_FILE = Path("/etc/ntfy-client.conf")
+LOG_FILE = Path("/var/log/ntfy-send.log")
+
+PRIORITY_ALIASES = {
+    "min": 1,
+    "low": 2,
+    "default": 3,
+    "high": 4,
+    "urgent": 5,
+}
+
+# Maximum recovery poll iterations (120 × 5 s = 10 min)
+RECOVERY_POLL_MAX = 120
+RECOVERY_POLL_INTERVAL = 5
+
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+def _get_logger(verbose=False):
+    logger = logging.getLogger("ntfy-send")
+    if logger.handlers:
+        return logger
+    logger.setLevel(logging.DEBUG)
+    fmt = logging.Formatter(
+        "%(asctime)s %(name)s %(levelname)s: %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%SZ",
+    )
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG if verbose else logging.WARNING)
+    ch.setFormatter(fmt)
+    logger.addHandler(ch)
+    try:
+        fh = logging.FileHandler(LOG_FILE)
+        fh.setFormatter(fmt)
+        logger.addHandler(fh)
+    except (PermissionError, OSError):
+        pass
+    return logger
+
+
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+
+def _load_config():
+    cfg = configparser.ConfigParser()
+    cfg.read(str(CONFIG_FILE))
+    return cfg
+
+
+def _endpoints(cfg):
+    """Return [(url, token)] list in preference order (primary then cloud)."""
+    primary = (
+        cfg.get("ntfy", "url", fallback="")
+        or os.environ.get("NTFY_URL", "")
+    ).strip()
+    cloud = (
+        cfg.get("ntfy", "cloud_url", fallback="")
+        or os.environ.get("NTFY_CLOUD_URL", "")
+    ).strip()
+    token = (
+        cfg.get("ntfy", "token", fallback="")
+        or os.environ.get("NTFY_TOKEN", "")
+    ).strip() or None
+
+    result = []
+    if primary:
+        result.append((primary, token))
+    if cloud:
+        result.append((cloud, None))  # cloud endpoint: no auth
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Lock / threshold helpers
+# ---------------------------------------------------------------------------
+
+def _key_hash(key, discriminator):
+    return hashlib.md5(
+        "\x00".join([key, discriminator]).encode()
+    ).hexdigest()[:32]
+
+
+def _ensure_lock_dir():
+    LOCK_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _lock_path(key, discriminator):
+    _ensure_lock_dir()
+    return LOCK_DIR / "{}.lck".format(_key_hash(key, discriminator))
+
+
+def _threshold_path(key, discriminator):
+    _ensure_lock_dir()
+    return LOCK_DIR / "{}.th".format(_key_hash(key, discriminator))
+
+
+# ---------------------------------------------------------------------------
+# HTTP
+# ---------------------------------------------------------------------------
+
+def _post(url, message, title, priority, tags, token=None, timeout=5):
+    headers = {
+        "Title": title,
+        "Priority": str(priority),
+        "Content-Type": "text/plain; charset=utf-8",
+    }
+    if tags:
+        headers["Tags"] = ",".join(tags)
+    if token:
+        headers["Authorization"] = "Bearer {}".format(token)
+
+    req = Request(
+        url, data=message.encode("utf-8"), headers=headers, method="POST"
+    )
+    try:
+        with urlopen(req, timeout=timeout) as resp:
+            return resp.status < 300
+    except URLError as exc:
+        logging.getLogger("ntfy-send").debug("POST %s failed: %s", url, exc)
+        return False
+    except Exception as exc:
+        logging.getLogger("ntfy-send").debug("POST %s error: %s", url, exc)
+        return False
+
+
+def _deliver(endpoints, message, title, priority, tags, logger):
+    """Try endpoints in order; return True on first success."""
+    for url, token in endpoints:
+        if _post(url, message, title, priority, tags, token):
+            logger.info("Delivered via %s", url)
+            return True
+        logger.debug("Failed via %s", url)
+    return False
+
+
+def _parse_priority(value):
+    if value in PRIORITY_ALIASES:
+        return PRIORITY_ALIASES[value]
+    try:
+        n = int(value)
+        return max(1, min(5, n))
+    except ValueError:
+        return 3
+
+
+# ---------------------------------------------------------------------------
+# Actions
+# ---------------------------------------------------------------------------
+
+def action_send(args, cfg, logger):
+    endpoints = _endpoints(cfg)
+    if not endpoints:
+        logger.error(
+            "No ntfy endpoint configured. Set [ntfy] url= in %s or NTFY_URL env var.",
+            CONFIG_FILE,
+        )
+        sys.exit(1)
+
+    discriminator = endpoints[0][0]  # stable per-host hash seed
+
+    # --- Deduplication: skip if this alert is already active ---
+    if args.key:
+        lf = _lock_path(args.key, discriminator)
+        if lf.exists() and not args.force:
+            logger.info(
+                "Alert '%s' already active (lock exists). Skipping.", args.key
+            )
+            sys.exit(0)
+
+    # --- Threshold gating ---
+    if args.key and args.threshold:
+        tf = _threshold_path(args.key, discriminator)
+        now = int(time.time())
+        if tf.exists():
+            parts = tf.read_text().strip().split()
+            th_time, th_count = int(parts[0]), int(parts[1]) + 1
+        else:
+            th_time, th_count = now, 1
+        tf.write_text("{} {}\n".format(th_time, th_count))
+
+        if args.threshold.endswith("m"):
+            elapsed = now - th_time
+            limit = int(args.threshold[:-1]) * 60
+            if elapsed < limit:
+                logger.info(
+                    "Threshold not reached for '%s' (%ds / %ds). Skipping.",
+                    args.key,
+                    elapsed,
+                    limit,
+                )
+                sys.exit(0)
+        elif th_count < int(args.threshold):
+            logger.info(
+                "Threshold not reached for '%s' (%d / %s). Skipping.",
+                args.key,
+                th_count,
+                args.threshold,
+            )
+            sys.exit(0)
+
+    priority = _parse_priority(args.priority)
+
+    if not _deliver(endpoints, args.message, args.title, priority, args.tags, logger):
+        logger.error("All endpoints failed (key=%s)", args.key)
+        sys.exit(1)
+
+    # Write dedup lock and clear threshold on success
+    if args.key:
+        lf = _lock_path(args.key, discriminator)
+        with lf.open("a") as fh:
+            fh.write(
+                "{} {}: {}\n".format(
+                    time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    args.host,
+                    args.title,
+                )
+            )
+        tf = _threshold_path(args.key, discriminator)
+        if tf.exists():
+            tf.unlink()
+
+    # Spawn background recovery watcher when requested
+    if args.watch_service:
+        _spawn_watcher(
+            args.watch_service,
+            args.key or args.watch_service,
+            args.host,
+            logger,
+        )
+
+
+def action_clear(args, cfg, logger):
+    endpoints = _endpoints(cfg)
+    discriminator = endpoints[0][0] if endpoints else ""
+
+    if not args.key:
+        logger.error("--key / -k is required for the clear action.")
+        sys.exit(1)
+
+    lf = _lock_path(args.key, discriminator)
+    tf = _threshold_path(args.key, discriminator)
+
+    if tf.exists():
+        tf.unlink()
+
+    if not lf.exists():
+        logger.info("No active alert for key '%s'. Nothing to clear.", args.key)
+        sys.exit(0)
+
+    lf.unlink()
+
+    if args.message and endpoints:
+        priority = _parse_priority(args.priority)
+        _deliver(endpoints, args.message, args.title, priority, args.tags, logger)
+
+
+def action_watch_clear(args, cfg, logger):
+    """
+    Long-running recovery poller (spawned via systemd-run by action_send).
+    Polls args.watch_service until active, then sends a recovery notification
+    and clears the dedup lock.
+    """
+    service = args.watch_service or args.key
+    if not service:
+        logger.error("--watch-service or --key required for watch-clear.")
+        sys.exit(1)
+
+    for _ in range(RECOVERY_POLL_MAX):
+        time.sleep(RECOVERY_POLL_INTERVAL)
+        try:
+            rc = subprocess.call(
+                ["systemctl", "is-active", "--quiet", service],
+                timeout=5,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            sys.exit(0)
+
+        if rc == 0:
+            endpoints = _endpoints(cfg)
+            if not endpoints:
+                sys.exit(0)
+
+            discriminator = endpoints[0][0]
+            message = args.message or "Service {} recovered on {}".format(
+                service, args.host
+            )
+            title = args.title if args.title != "Alert" else "Service Up"
+            tags = args.tags if args.tags else ["white_check_mark"]
+            priority = _parse_priority(args.priority)
+
+            _deliver(endpoints, message, title, priority, tags, logger)
+
+            # Clear dedup lock
+            lf = _lock_path(args.key or service, discriminator)
+            if lf.exists():
+                lf.unlink()
+
+            sys.exit(0)
+
+
+# ---------------------------------------------------------------------------
+# Recovery watcher spawner
+# ---------------------------------------------------------------------------
+
+def _spawn_watcher(service, key, host, logger):
+    unit_name = "ntfy-recovery-{}".format(
+        service.replace(".", "-").replace("@", "-")
+    )
+    cmd = [
+        "systemd-run",
+        "--unit", unit_name,
+        "--",
+        sys.argv[0],
+        "--action", "watch-clear",
+        "--key", key,
+        "--watch-service", service,
+        "--host", host,
+        "--title", "Service Up",
+        "--message", "Service {} recovered on {}".format(service, host),
+        "--tags", "white_check_mark",
+    ]
+    try:
+        subprocess.run(cmd, capture_output=True, timeout=5)
+        logger.debug("Spawned recovery watcher as %s", unit_name)
+    except Exception as exc:
+        logger.debug("Could not spawn recovery watcher: %s", exc)
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+def _build_parser(default_action):
+    p = argparse.ArgumentParser(
+        description="Send Ntfy notifications with deduplication and self-hosted/cloud failover."
+    )
+    p.add_argument(
+        "--action",
+        choices=["send", "clear", "watch-clear"],
+        default=default_action,
+        help="Action to perform (default derived from argv[0]).",
+    )
+    p.add_argument("--title", "-t", default="Alert", help="Notification title.")
+    p.add_argument(
+        "--message", "--msg", "-m", default="", help="Notification message body."
+    )
+    p.add_argument(
+        "--priority",
+        "-p",
+        default="default",
+        metavar="LEVEL",
+        help="Priority: min / low / default / high / urgent  or  1-5.",
+    )
+    p.add_argument(
+        "--tags",
+        nargs="+",
+        metavar="TAG",
+        default=[],
+        help="Notification tags (space-separated, e.g. --tags warning rotating_light).",
+    )
+    p.add_argument(
+        "--key",
+        "-k",
+        default=None,
+        help="Deduplication key — suppresses duplicate alerts for the same incident.",
+    )
+    p.add_argument(
+        "--threshold",
+        metavar="N[m]",
+        help="Fire only after N occurrences (e.g. 3) or N minutes (e.g. 10m).",
+    )
+    p.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Send even when a dedup lock is active.",
+    )
+    p.add_argument(
+        "--watch-service",
+        metavar="UNIT",
+        help="After sending, spawn a background watcher that auto-clears when UNIT recovers.",
+    )
+    p.add_argument(
+        "--host",
+        default=socket.getfqdn(),
+        help="Source hostname (default: FQDN of this machine).",
+    )
+    p.add_argument("--verbose", "-v", action="store_true", help="Debug output.")
+    return p
+
+
+def main():
+    basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+    default_action = "clear" if basename == "ntfy-clear" else "send"
+
+    parser = _build_parser(default_action)
+    args = parser.parse_args()
+    logger = _get_logger(args.verbose)
+    cfg = _load_config()
+
+    if args.action == "send":
+        if not args.message:
+            parser.error("--message / -m is required for the send action.")
+        action_send(args, cfg, logger)
+    elif args.action == "clear":
+        action_clear(args, cfg, logger)
+    elif args.action == "watch-clear":
+        action_watch_clear(args, cfg, logger)
+
+
+if __name__ == "__main__":
+    main()
