@@ -48,7 +48,8 @@
     - ntfy_client
     - lgtm
     - wazuh_manager
-    - wazuh_stack
+    - role: wazuh_stack
+      tags: [wazuh_stack]
     - alloy        # server mode: receives Unifi syslog on UDP/514
     - role: infisical
       tags: [infisical]
