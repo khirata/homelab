@@ -74,6 +74,14 @@ unpoller_version: "v2.11.2"
 wazuh_version: "4.14"
 wazuh_docker_version: "4.14.5"
 wazuh_indexer_heap: "4g"
+wazuh_indexer_mem_limit: "6g"           # Docker cgroup hard cap (RAM + swap combined via memswap_limit)
+wazuh_indexer_gc_opts: "-XX:-UseG1GC -XX:+UseZGC -XX:ZCollectionInterval=60"
+  # ZGC replaces G1GC to prevent safepoint-stall crashes on this 16K-page kernel.
+  # G1GC stop-the-world evacuation requires ALL JVM threads to reach a safepoint
+  # simultaneously; a thread blocked in kernel memory compaction can never do so,
+  # causing a 60s+ hang → BCM2835 watchdog → hard reset.
+  # ZGC is fully concurrent and imposes no such constraint.
+  # ZCollectionInterval=60 prevents Eden accumulating >2GB between GC cycles.
 wazuh_indexer_cluster_name: "wazuh-cluster"
 wazuh_indexer_node_name: "wazuh-indexer-laf3"
 wazuh_dashboard_external_url: "{{ lookup('env', 'WAZUH_DASHBOARD_EXTERNAL_URL') | default('', true) }}"

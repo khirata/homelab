@@ -35,6 +35,10 @@ deploy: _pre-deploy-backup
 deploy-siem: _pre-deploy-backup
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server
 
+## Deploy only the Wazuh stack containers (indexer, dashboard, nginx proxy) — no backup pre-step
+deploy-wazuh:
+	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags wazuh_stack
+
 ## Deploy only Grafana dashboards (no stack restart)
 deploy-dashboards:
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --tags dashboards

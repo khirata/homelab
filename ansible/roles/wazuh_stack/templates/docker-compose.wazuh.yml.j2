@@ -23,7 +23,7 @@ services:
     ports:
       - "127.0.0.1:{{ wazuh_indexer_port }}:9200"
     environment:
-      OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_indexer_heap }} -Xmx{{ wazuh_indexer_heap }}"
+      OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_indexer_heap }} -Xmx{{ wazuh_indexer_heap }} {{ wazuh_indexer_gc_opts }}"
     ulimits:
       memlock:
         soft: -1
@@ -31,8 +31,8 @@ services:
       nofile:
         soft: 65536
         hard: 65536
-    mem_limit: 6g
-    memswap_limit: 6g
+    mem_limit: {{ wazuh_indexer_mem_limit }}
+    memswap_limit: {{ wazuh_indexer_mem_limit }}
     volumes:
       - type: bind
         source: {{ siem_data_dir }}/wazuh-indexer

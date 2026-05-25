@@ -12,6 +12,9 @@
 # wazuh_cf_proxy_port: 5600
 # wazuh_debug_port: 5602      (LAN debug — no JWT check, fixed proxy user)
 # wazuh_indexer_heap: "4g"
+# wazuh_indexer_mem_limit: "6g"          (Docker cgroup hard cap; memswap_limit set to same value)
+# wazuh_indexer_gc_opts: "-XX:-UseG1GC -XX:+UseZGC -XX:ZCollectionInterval=60"
+#                                         (ZGC prevents G1GC safepoint-stall watchdog crashes)
 # wazuh_indexer_cluster_name: "wazuh-cluster"
 # wazuh_indexer_node_name: "wazuh-indexer-laf3"
 # wazuh_dashboard_external_url: ""
