@@ -75,7 +75,7 @@ wazuh_version: "4.14"
 wazuh_docker_version: "4.14.5"
 wazuh_indexer_heap: "4g"
 wazuh_indexer_mem_limit: "6g"           # Docker cgroup hard cap (RAM + swap combined via memswap_limit)
-wazuh_indexer_gc_opts: "-XX:+UseZGC -XX:ZCollectionInterval=60"
+wazuh_indexer_gc_opts: "-XX:-UseG1GC -XX:+UseZGC -XX:ZCollectionInterval=60"
   # ZGC replaces G1GC to prevent safepoint-stall crashes on this 16K-page kernel.
   # G1GC stop-the-world evacuation requires ALL JVM threads to reach a safepoint
   # simultaneously; a thread blocked in kernel memory compaction can never do so,
