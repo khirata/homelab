@@ -17,19 +17,19 @@
 
 - name: Discover root partition PARTUUID
   ansible.builtin.command: blkid -s PARTUUID -o value /dev/nvme0n1p2
-  register: _rpi5_partuuid
+  register: _rpi5_boot_partuuid
   changed_when: false
   check_mode: false  # must run even in dry-run so template can render
 
 - name: Set root PARTUUID fact
   ansible.builtin.set_fact:
-    rpi5_root_partuuid: "{{ _rpi5_partuuid.stdout | trim }}"
+    rpi5_boot_root_partuuid: "{{ _rpi5_boot_partuuid.stdout | trim }}"
 
 - name: Select kernel in config.txt
   ansible.builtin.lineinfile:
     path: /boot/firmware/config.txt
     regexp: '^kernel='
-    line: "kernel={{ rpi5_kernel }}"
+    line: "kernel={{ rpi5_boot_kernel }}"
     state: present
   notify: Sync boot partition
 

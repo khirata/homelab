@@ -2,41 +2,41 @@
 # Kernel to use — kernel_2712.img = 16K-page kernel (RPi5 default; fewer PRP
 # entries per I/O reduces unchecked-data-buffer DMA pressure on BCM2712).
 # We briefly ran kernel8.img (4K) during crash debugging; it did not help.
-rpi5_kernel: kernel_2712.img
+rpi5_boot_kernel: kernel_2712.img
 
 # Fake NUMA nodes — override DTB's numa=fake=8 to consolidate all RAM into one
 # node, eliminating 8-way DMA buffer interleaving that caused NVMe EIO crashes.
 # Must be 1, not 0 (0 would re-enable real NUMA discovery = same 8 DTB nodes).
-rpi5_numa_fake: 1
+rpi5_boot_numa_fake: 1
 
 # IOMMU DMA NUMA policy — override DTB's 'interleave' to prevent IOVA
 # allocations from spreading across fake NUMA nodes.
-rpi5_iommu_dma_numa_policy: default
+rpi5_boot_iommu_dma_numa_policy: default
 
 # NVMe: disable power state latency cap (prevents aggressive PS transitions)
-rpi5_nvme_ps_max_latency_us: 0
+rpi5_boot_nvme_ps_max_latency_us: 0
 
 # NVMe: disable Controller Memory Buffer SQ (defensive; Crucial drives ignore it)
-rpi5_nvme_use_cmb_sqes: 0
+rpi5_boot_nvme_use_cmb_sqes: 0
 
 # PCIe ASPM: off — prevents link power state transitions that can cause EIO
-rpi5_pcie_aspm: "off"
+rpi5_boot_pcie_aspm: "off"
 
 # Kernel panic/watchdog settings
-rpi5_hung_task_timeout_secs: 45
-rpi5_panic_timeout: 10
+rpi5_boot_hung_task_timeout_secs: 45
+rpi5_boot_panic_timeout: 10
 
 # WiFi regulatory domain
-rpi5_wifi_regdom: US
+rpi5_boot_wifi_regdom: US
 
 # Coherent DMA pool — override DTB's coherent_pool=1M.  The NVMe driver uses
 # dma_alloc_coherent (unchecked data buffer path) for every I/O; under heavy
 # Docker/Wazuh write load the 1 MB DTB default was exhausting, causing EIO.
-rpi5_coherent_pool: "8M"
+rpi5_boot_coherent_pool: "8M"
 
 # Host Memory Buffer — set to 0 to disable HMB on Crucial P3 Plus (CT2000P3PSSD8).
 # DTB injects nvme.max_host_mem_size_mb=32; we override to 0 to disable entirely.
 # BCM2712 sends malformed HMB management commands (CDW10 Invalid Field,
 # error 0x2002, 78+ occurrences) that the drive rejects, leaving internal
 # drive state inconsistent and causing NVMe command stalls → EIO at ~31 min.
-rpi5_nvme_max_host_mem_size_mb: 0
+rpi5_boot_nvme_max_host_mem_size_mb: 0
