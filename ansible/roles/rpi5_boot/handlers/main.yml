@@ -1,0 +1,8 @@
+---
+- name: Sync boot partition
+  ansible.builtin.command: sync
+  changed_when: false
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true

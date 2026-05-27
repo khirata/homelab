@@ -1,0 +1,66 @@
+---
+# Manages RPi5 boot configuration and NVMe stability services:
+#   /boot/firmware/config.txt      — kernel image selection
+#   /boot/firmware/cmdline.txt     — NVMe stability + crash recovery parameters
+#   nvme-wc-disable.service        — disables NVMe volatile write cache on boot
+#   rpi-metrics.timer              — Prometheus hardware metrics (vcgencmd)
+#
+# Root cause (confirmed): BCM2712 brcm-pcie sends malformed Host Memory Buffer
+# admin commands (CDW10 Invalid Field, 0x2002) that the Crucial P3 Plus rejects
+# 78+ times, corrupting drive internal state until an NVMe command stalls at
+# ~1837s, hits the 30s kernel I/O timeout → EIO → ext4 journal abort → crash.
+# Fix: nvme.max_host_mem_size_mb=0 disables HMB negotiation entirely.
+# Additional overrides: coherent_pool=1M→8M; numa=fake=8→1; kernel_2712.img.
+#
+# Changes to cmdline.txt / config.txt require a reboot to take effect.
+# This role is idempotent; re-running when files are correct produces no changes.
+
+- name: Discover root partition PARTUUID
+  ansible.builtin.command: blkid -s PARTUUID -o value /dev/nvme0n1p2
+  register: _rpi5_partuuid
+  changed_when: false
+  check_mode: false  # must run even in dry-run so template can render
+
+- name: Set root PARTUUID fact
+  ansible.builtin.set_fact:
+    rpi5_root_partuuid: "{{ _rpi5_partuuid.stdout | trim }}"
+
+- name: Select kernel in config.txt
+  ansible.builtin.lineinfile:
+    path: /boot/firmware/config.txt
+    regexp: '^kernel='
+    line: "kernel={{ rpi5_kernel }}"
+    state: present
+  notify: Sync boot partition
+
+- name: Render cmdline.txt with NVMe stability parameters
+  ansible.builtin.template:
+    src: cmdline.txt.j2
+    dest: /boot/firmware/cmdline.txt
+    owner: root
+    group: root
+    mode: "0755"
+    trim_blocks: false
+  notify: Sync boot partition
+
+- name: Deploy nvme-wc-disable systemd service
+  ansible.builtin.copy:
+    src: nvme-wc-disable.service
+    dest: /etc/systemd/system/nvme-wc-disable.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Enable nvme-wc-disable service
+  ansible.builtin.systemd:
+    name: nvme-wc-disable.service
+    enabled: true
+    state: started
+    daemon_reload: false
+
+- name: Enable rpi-metrics timer
+  ansible.builtin.systemd:
+    name: rpi-metrics.timer
+    enabled: true
+    state: started

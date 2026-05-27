@@ -44,6 +44,7 @@
     ansible_remote_tmp: /tmp
     alloy_pg_log_dir: /var/log/postgresql
   roles:
+    - rpi5_boot   # NVMe stability: HMB off + coherent_pool=8M + numa=fake=1
     - docker
     - ntfy_client
     - lgtm
