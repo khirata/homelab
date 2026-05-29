@@ -50,7 +50,7 @@ deploy-ntfy-client:
 ## Bootstrap Infisical — uses .env directly (first deploy, Infisical not yet running)
 ## All secrets must be present in .env (not yet in Infisical).
 deploy-infisical:
-	ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags infisical
+	ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags docker,infisical
 
 ## Update a running Infisical — injects secrets from Infisical (use after initial bootstrap)
 redeploy-infisical:
