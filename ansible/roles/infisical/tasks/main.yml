@@ -1,4 +1,12 @@
 ---
+- name: Ensure siem config directory exists
+  ansible.builtin.file:
+    path: "{{ siem_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Create Infisical env file
   ansible.builtin.template:
     src: infisical.env.j2
