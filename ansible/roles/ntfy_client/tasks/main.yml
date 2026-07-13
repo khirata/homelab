@@ -18,11 +18,14 @@
     group: root
     mode: "0755"
 
+# force makes check mode pass on hosts where ntfy-send is not yet deployed
+# (the copy above is only simulated in --check runs, so src would not exist)
 - name: Create ntfy-clear symlink
   ansible.builtin.file:
     src: /usr/local/bin/ntfy-send
     dest: /usr/local/bin/ntfy-clear
     state: link
+    force: true
 
 - name: Deploy ntfy-client.conf
   ansible.builtin.template:
