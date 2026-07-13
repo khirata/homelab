@@ -25,12 +25,15 @@
     executable: /bin/bash
   when: not wazuh_stack_fb_module.stat.exists
 
+# /etc/filebeat is created by the filebeat package; in --check runs on a fresh
+# host the install above is only simulated, so the directory does not exist
 - name: Download Wazuh index template
   ansible.builtin.get_url:
     url: "https://raw.githubusercontent.com/wazuh/wazuh/v{{ wazuh_docker_version }}/extensions/elasticsearch/7.x/wazuh-template.json"
     dest: /etc/filebeat/wazuh-template.json
     mode: "0644"
     force: false
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Template filebeat.yml
   ansible.builtin.template:
@@ -39,6 +42,7 @@
     owner: root
     group: root
     mode: "0600"
+  ignore_errors: "{{ ansible_check_mode }}"
   notify: Restart filebeat
 
 - name: Create filebeat keystore if missing
@@ -65,3 +69,4 @@
     name: filebeat
     state: started
     enabled: true
+  ignore_errors: "{{ ansible_check_mode }}"
