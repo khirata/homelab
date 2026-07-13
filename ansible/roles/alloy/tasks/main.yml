@@ -69,11 +69,14 @@
   ignore_errors: "{{ ansible_check_mode }}"
   notify: Restart alloy
 
+# /etc/default/alloy is created by the alloy package; in --check runs on a
+# fresh host the install above is only simulated, so the file does not exist
 - name: Set Alloy HTTP listen address to 0.0.0.0 (required for Prometheus scraping)
   ansible.builtin.lineinfile:
     path: /etc/default/alloy
     regexp: '^CUSTOM_ARGS='
     line: 'CUSTOM_ARGS="--server.http.listen-addr=0.0.0.0:{{ alloy_ui_port }}"'
+  ignore_errors: "{{ ansible_check_mode }}"
   notify: Restart alloy
 
 - name: Add alloy user to docker group (server mode — Docker log collection)
