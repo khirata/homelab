@@ -4,6 +4,7 @@
     name:
       - gnupg
       - curl
+      - acl
     state: present
     update_cache: true
 

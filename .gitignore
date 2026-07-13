@@ -6,3 +6,4 @@
 .ansible_cache/
 __pycache__/
 *.pyc
+.secrets
