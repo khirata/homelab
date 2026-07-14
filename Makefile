@@ -23,9 +23,13 @@ clean:
 	@echo "Nothing to clean."
 
 ## Trigger a PostgreSQL backup on the remote server
+## Uses ; not && so the log tail always prints, even on failure; the final
+## is-failed check still makes this target exit non-zero on a real failure.
 backup:
 	$(INFISICAL_RUN) ssh $$SIEM_SERVER_USER@$$SIEM_SERVER_IP \
-	  "sudo systemctl start pg-backup.service && journalctl -u pg-backup.service -n 20 --no-pager"
+	  "sudo systemctl start pg-backup.service; \
+	   journalctl -u pg-backup.service -n 20 --no-pager; \
+	   ! systemctl is-failed --quiet pg-backup.service"
 
 ## Deploy the SIEM server stack (runs backup first if pg-backup.timer exists)
 deploy: _pre-deploy-backup
@@ -56,12 +60,19 @@ deploy-infisical:
 redeploy-infisical:
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags infisical
 
+## NOTE: previously this used a single &&/|| chain, so a pg-backup unit that
+## exists but genuinely fails to start printed the same "not yet installed,
+## skipping" message as a host where it was never installed — masking backup
+## failures right before a deploy. This distinguishes "not installed" (skip,
+## fine) from "installed but failed" (abort the deploy, which depends on this
+## target) and always shows the log tail so the failure is visible inline.
 _pre-deploy-backup:
 	@$(INFISICAL_RUN) ssh $$SIEM_SERVER_USER@$$SIEM_SERVER_IP \
-	  "systemctl list-units --type=service --all | grep -q pg-backup.service \
-	   && sudo systemctl start pg-backup.service \
-	   && echo '[backup] pre-deploy snapshot complete' \
-	   || echo '[backup] pg-backup not yet installed, skipping'"
+	  "systemctl list-units --type=service --all | grep -q pg-backup.service || { echo '[backup] pg-backup not yet installed, skipping'; exit 0; }; \
+	   sudo systemctl start pg-backup.service; \
+	   journalctl -u pg-backup.service -n 20 --no-pager; \
+	   systemctl is-failed --quiet pg-backup.service && { echo '[backup] pre-deploy snapshot FAILED — aborting deploy' >&2; exit 1; }; \
+	   echo '[backup] pre-deploy snapshot complete'"
 
 ## Dry-run (no changes applied)
 check:

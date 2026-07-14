@@ -206,6 +206,22 @@ jobs:
             exit 1
           fi
 
+      - name: Validate rendered PostgreSQL backup script
+        run: |
+          set -euo pipefail
+
+          # pg-backup.service runs this as OS user postgres over the local socket,
+          # which uses peer auth (OS user must equal the DB role). Passing -U here
+          # reintroduces "Peer authentication failed" — this broke every nightly
+          # backup silently until it was caught by manual inspection, not CI.
+          if grep -qE 'pg_dump[^|]*-U[[:space:]]' /tmp/rendered/pg-backup.sh; then
+            echo "::error::pg-backup.sh passes -U to pg_dump, breaking peer auth for the postgres OS user running the backup (see pg-backup.service User=)."
+            echo "::error::Backups must connect as the postgres role, not infisical_db_user — pg_dump should have no -U flag."
+            exit 1
+          fi
+          grep -q '^pg_dump -Fc' /tmp/rendered/pg-backup.sh \
+            || { echo "::error::pg-backup.sh does not contain the expected pg_dump -Fc invocation"; exit 1; }
+
       - name: Show rendered Alloy configs
         run: |
           echo "=== alloy-server.alloy ===" && cat /tmp/rendered/alloy-server.alloy
