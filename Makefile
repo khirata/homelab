@@ -69,8 +69,7 @@ redeploy-infisical:
 _pre-deploy-backup:
 	@$(INFISICAL_RUN) ssh $$SIEM_SERVER_USER@$$SIEM_SERVER_IP \
 	  "systemctl list-units --type=service --all | grep -q pg-backup.service || { echo '[backup] pg-backup not yet installed, skipping'; exit 0; }; \
-	   sudo systemctl start pg-backup.service; \
-	   journalctl -u pg-backup.service -n 20 --no-pager; \
+	   sudo systemctl start pg-backup.service; journalctl -u pg-backup.service -n 20 --no-pager; \
 	   systemctl is-failed --quiet pg-backup.service && { echo '[backup] pre-deploy snapshot FAILED — aborting deploy' >&2; exit 1; }; \
 	   echo '[backup] pre-deploy snapshot complete'"
 
