@@ -5,7 +5,11 @@ set -euo pipefail
 DEST="{{ pg_backup_dir }}/$(date +%Y%m%d_%H%M%S)_{{ infisical_db_name }}.pgdump"
 
 echo "Starting backup: ${DEST}"
-pg_dump -U "{{ infisical_db_user }}" -Fc "{{ infisical_db_name }}" -f "${DEST}"
+# No -U flag: this runs as OS user postgres (see pg-backup.service User=), which
+# connects over the local socket via peer auth as the matching "postgres" role.
+# Passing -U {{ infisical_db_user }} here fails peer auth (OS user != db role) —
+# the postgres role can already read every database, so no app credential is needed.
+pg_dump -Fc "{{ infisical_db_name }}" -f "${DEST}"
 echo "Backup complete: ${DEST}"
 
 # Prune backups older than {{ pg_backup_retain_days }} days
