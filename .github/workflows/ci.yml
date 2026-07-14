@@ -183,7 +183,23 @@ jobs:
             echo "::error::could not extract infisical_version from ansible/ci/mock-vars.yml"
             exit 1
           fi
-          grep -q "image: infisical/infisical:${version}" /tmp/rendered/docker-compose.infisical.yml \
+
+          # mock-vars.yml is what this job actually renders and checks below — if it
+          # drifts from the real production pin, all the checks below pass while
+          # verifying the wrong version. Keep the two in lockstep.
+          prod_version=$(sed -nE 's/^infisical_version:[[:space:]]*"?([^"]+)"?[[:space:]]*$/\1/p' ansible/group_vars/all/vars.yml)
+          if [[ -z "$prod_version" ]]; then
+            echo "::error::could not extract infisical_version from ansible/group_vars/all/vars.yml"
+            exit 1
+          fi
+          if [[ "$prod_version" != "$version" ]]; then
+            echo "::error::infisical_version differs between group_vars/all/vars.yml (${prod_version}) and ansible/ci/mock-vars.yml (${version})"
+            exit 1
+          fi
+
+          # End-anchored so a hard-coded suffixed tag in the template (e.g.
+          # "v0.162.5-postgres") can't slip past a substring match against "v0.162.5".
+          grep -q "image: infisical/infisical:${version}\$" /tmp/rendered/docker-compose.infisical.yml \
             || { echo "::error::docker-compose.infisical.yml image tag does not match infisical_version (${version})"; exit 1; }
           if [[ "$version" == *-postgres ]]; then
             echo "::error::infisical_version '${version}' uses the deprecated -postgres tag suffix (dropped upstream as of v0.147.0)"
