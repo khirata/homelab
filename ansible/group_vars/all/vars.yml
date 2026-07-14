@@ -87,7 +87,7 @@ wazuh_indexer_node_name: "wazuh-indexer-laf3"
 wazuh_dashboard_external_url: "{{ lookup('env', 'WAZUH_DASHBOARD_EXTERNAL_URL') | default('', true) }}"
 wazuh_active_response_whitelist:
   - "127.0.0.1"
-infisical_version: "v0.146.0-postgres"
+infisical_version: "v0.162.5"
 postgresql_version: "16"
 redis_dashboard_id: 763
 redis_dashboard_revision: 1

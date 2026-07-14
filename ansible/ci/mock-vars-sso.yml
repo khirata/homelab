@@ -1,0 +1,7 @@
+---
+# Overlay for CI only: pass alongside mock-vars.yml (as a later -e) to exercise
+# the Google OAuth conditional block in infisical.env.j2. See render-templates.yml
+# for why this can't be a task-level `vars:` override instead.
+vault_infisical_client_id_google: "ci-test-google-client-id"
+vault_infisical_client_secret_google: "ci-test-google-client-secret"
+infisical_env_dest: /tmp/rendered/infisical-sso.env
