@@ -59,6 +59,9 @@ vault_redis_password: "ci-test-redis-password"
 vault_infisical_encryption_key: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
 vault_infisical_auth_secret: "ci-test-auth-secret-for-jwt-signing-only"
 infisical_site_url: "http://10.0.0.1:8080"
+infisical_external_url: ""
+vault_infisical_client_id_google: ""
+vault_infisical_client_secret_google: ""
 unifi_controller_url_site1: "https://10.0.1.1:443"
 vault_unifi_username_site1: "ci-unpoller"
 vault_unifi_password_site1: "ci-test-unifi-password"
@@ -72,7 +75,7 @@ infisical_db_name: infisical
 infisical_db_user: infisical
 redis_port: 6379
 redis_bind: "0.0.0.0"
-infisical_version: "v0.146.0-postgres"
+infisical_version: "v0.162.5"
 infisical_port: 8080
 
 # --- Backup ---

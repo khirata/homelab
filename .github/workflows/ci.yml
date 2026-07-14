@@ -129,6 +129,16 @@ jobs:
         env:
           ANSIBLE_ROLES_PATH: ansible/roles
 
+      - name: Re-render infisical.env with Google SSO configured (exercises the conditional block)
+        run: |
+          ansible-playbook ansible/ci/render-templates.yml \
+            -i ansible/ci/mock-inventory.ini \
+            -e @ansible/ci/mock-vars.yml \
+            -e @ansible/ci/mock-vars-sso.yml \
+            --tags infisical_env
+        env:
+          ANSIBLE_ROLES_PATH: ansible/roles
+
       - name: Validate rendered YAML files
         run: |
           yamllint \
@@ -137,6 +147,48 @@ jobs:
             /tmp/rendered/grafana-datasources.yaml \
             /tmp/rendered/docker-compose.lgtm.yml \
             /tmp/rendered/docker-compose.infisical.yml
+
+      - name: Validate rendered Infisical config
+        run: |
+          set -euo pipefail
+
+          # No unrendered Jinja placeholders leaked into the output
+          for f in /tmp/rendered/infisical.env /tmp/rendered/infisical-sso.env; do
+            if grep -q '{{' "$f"; then
+              echo "::error::$f still contains an unrendered Jinja placeholder"
+              exit 1
+            fi
+          done
+
+          # Required keys Infisical needs to boot must always be present
+          for key in NODE_ENV PORT SITE_URL DB_CONNECTION_URI REDIS_URL ENCRYPTION_KEY AUTH_SECRET; do
+            grep -q "^${key}=" /tmp/rendered/infisical.env \
+              || { echo "::error::infisical.env is missing required key ${key}"; exit 1; }
+          done
+
+          # Google SSO block must be absent when unconfigured, present when configured
+          if grep -q '^CLIENT_ID_GOOGLE_LOGIN=' /tmp/rendered/infisical.env; then
+            echo "::error::CLIENT_ID_GOOGLE_LOGIN should not render when Google OAuth is unset"
+            exit 1
+          fi
+          grep -q '^CLIENT_ID_GOOGLE_LOGIN=ci-test-google-client-id$' /tmp/rendered/infisical-sso.env \
+            || { echo "::error::infisical-sso.env did not render the Google OAuth block"; exit 1; }
+          grep -q '^CLIENT_SECRET_GOOGLE_LOGIN=ci-test-google-client-secret$' /tmp/rendered/infisical-sso.env \
+            || { echo "::error::infisical-sso.env did not render the Google OAuth secret"; exit 1; }
+
+          # Guard against the deprecated -postgres tag suffix (dropped upstream as of v0.147.0)
+          # and against the image tag drifting from the pinned infisical_version var.
+          version=$(sed -nE 's/^infisical_version:[[:space:]]*"?([^"]+)"?[[:space:]]*$/\1/p' ansible/ci/mock-vars.yml)
+          if [[ -z "$version" ]]; then
+            echo "::error::could not extract infisical_version from ansible/ci/mock-vars.yml"
+            exit 1
+          fi
+          grep -q "image: infisical/infisical:${version}" /tmp/rendered/docker-compose.infisical.yml \
+            || { echo "::error::docker-compose.infisical.yml image tag does not match infisical_version (${version})"; exit 1; }
+          if [[ "$version" == *-postgres ]]; then
+            echo "::error::infisical_version '${version}' uses the deprecated -postgres tag suffix (dropped upstream as of v0.147.0)"
+            exit 1
+          fi
 
       - name: Show rendered Alloy configs
         run: |

@@ -22,6 +22,7 @@
         path: "{{ render_dir }}"
         state: directory
         mode: "0755"
+      tags: [always]
 
     # ── LGTM templates ────────────────────────────────────────────────────
 
@@ -88,6 +89,17 @@
         src: "{{ playbook_dir }}/../roles/infisical/templates/docker-compose.infisical.yml.j2"
         dest: "{{ render_dir }}/docker-compose.infisical.yml"
         mode: "0644"
+
+    # dest is parameterized so a second CI invocation can re-run just this task
+    # (via --tags infisical_env) with an extra-vars overlay that sets the Google
+    # OAuth vars, exercising the {% if %} block in infisical.env.j2. Extra-vars
+    # (-e) outrank task-level `vars:`, so a same-run vars: override can't do this.
+    - name: Render infisical.env
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/infisical/templates/infisical.env.j2"
+        dest: "{{ infisical_env_dest | default(render_dir + '/infisical.env') }}"
+        mode: "0644"
+      tags: [infisical_env]
 
     - name: Render pg-backup.sh
       ansible.builtin.template:
