@@ -1,0 +1,18 @@
+---
+# Runs on the controller (assert never connects to the target host), once per
+# playbook run, and under every --limit / --tags combination (tags: always).
+- name: Verify critical secrets are non-empty in the controller environment
+  ansible.builtin.assert:
+    that: lookup('env', item) | length > 0
+    quiet: true
+    fail_msg: >-
+      Environment variable {{ item }} is empty or unset on the controller.
+      Secrets are injected by `infisical run`; an empty value here usually
+      means the Infisical machine identity has no access to the project
+      (infisical run exits 0 but injects zero secrets). Check the identity's
+      project access in Infisical and the INFISICAL_CLIENT_ID /
+      INFISICAL_CLIENT_SECRET / INFISICAL_PROJECT_ID values in .env, then
+      re-run. Aborting before any role can push empty secrets to hosts.
+  loop: "{{ preflight_required_env_vars }}"
+  run_once: true
+  tags: [always]

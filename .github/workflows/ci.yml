@@ -102,6 +102,54 @@ jobs:
           INFISICAL_AUTH_SECRET: "ci-dummy-auth-secret"
           INFISICAL_SITE_URL: "http://10.0.0.1:8080"
 
+  # ── 2b. Preflight secret guard ─────────────────────────────────────────
+  # Proves the preflight role fails fast on an empty environment (the
+  # silent-empty `infisical run` injection failure mode) and passes when
+  # all required secrets are present.
+  preflight-guard:
+    name: Preflight secret guard
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: ""
+
+      - name: Install Ansible
+        run: pip install ansible-core
+
+      - name: Preflight passes when all required secrets are present
+        run: |
+          ansible-playbook ansible/ci/preflight-test.yml \
+            -i ansible/ci/mock-inventory.ini
+        env:
+          ANSIBLE_ROLES_PATH: ansible/roles
+          GRAFANA_ADMIN_PASSWORD: "ci-dummy"
+          WAZUH_API_PASSWORD: "Ci-Dummy1!"
+          POSTGRESQL_PASSWORD: "ci-dummy"
+          REDIS_PASSWORD: "ci-dummy-redis"
+          DISCORD_WEBHOOK_URL: "https://discord.example/ci-dummy-webhook"
+
+      # No secret env vars set here — mimics `infisical run` exiting 0 while
+      # injecting nothing (machine identity without project access).
+      - name: Preflight fails when the environment is empty
+        run: |
+          set -euo pipefail
+          if output=$(ansible-playbook ansible/ci/preflight-test.yml \
+              -i ansible/ci/mock-inventory.ini 2>&1); then
+            echo "::error::preflight guard passed with an empty environment — it must fail"
+            echo "$output"
+            exit 1
+          fi
+          echo "$output" | grep -q "machine identity" \
+            || { echo "::error::preflight failure message does not point at the Infisical machine identity"; echo "$output"; exit 1; }
+          echo "Preflight correctly aborted on empty environment."
+        env:
+          ANSIBLE_ROLES_PATH: ansible/roles
+
   # ── 3. Template rendering ──────────────────────────────────────────────
   # Renders every .j2 template with mock vars.
   # Runs yamllint on the rendered YAML outputs (lgtm templates).

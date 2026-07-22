@@ -1,4 +1,17 @@
 ---
+# Fail fast if the injected environment is empty (e.g. the Infisical machine
+# identity lost project access: `infisical run` exits 0 but injects zero
+# secrets, and every lookup('env', ...) in group_vars renders empty).
+# hosts: all + run_once (in the role) so it still fires under any --limit;
+# assert executes on the controller, so no connection to hosts is needed.
+- name: Preflight — verify injected secrets before any role runs
+  hosts: all
+  gather_facts: false
+  become: false
+  roles:
+    - role: preflight
+      tags: [always]
+
 - name: Nodes
   hosts: nodes
   become: true

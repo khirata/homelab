@@ -1,0 +1,19 @@
+---
+# Environment variables that must be non-empty on the controller before any
+# role runs. They are injected by `infisical run` (or come from .env during
+# the Infisical bootstrap deploy). If the Infisical machine identity loses
+# project access, `infisical run` exits 0 but injects zero secrets — every
+# lookup('env', ...) in group_vars renders empty. Asserting a handful of
+# always-required secrets catches that failure mode before roles push broken
+# config to hosts.
+#
+# DISCORD_WEBHOOK_URL is listed even though the Discord alert channel is
+# nominally optional: an empty value does not disable the channel — it makes
+# the lgtm role rewrite the Grafana contact point with an empty webhook.
+# Remove it here only if the channel is intentionally decommissioned.
+preflight_required_env_vars:
+  - GRAFANA_ADMIN_PASSWORD
+  - WAZUH_API_PASSWORD
+  - POSTGRESQL_PASSWORD
+  - REDIS_PASSWORD
+  - DISCORD_WEBHOOK_URL

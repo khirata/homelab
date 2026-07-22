@@ -1,0 +1,16 @@
+---
+# CI playbook — exercises the preflight secret guard in isolation.
+#
+# Usage (from repo root):
+#   ansible-playbook ansible/ci/preflight-test.yml \
+#     -i ansible/ci/mock-inventory.ini
+#
+# Passes when every var in preflight_required_env_vars is non-empty in the
+# environment; fails when any is empty or unset. CI runs it both ways to
+# prove the guard actually catches an empty `infisical run` injection.
+- name: Preflight guard test
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - preflight
