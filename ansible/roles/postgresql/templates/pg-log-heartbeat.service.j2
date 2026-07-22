@@ -1,0 +1,15 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/postgresql/templates/pg-log-heartbeat.service.j2
+
+[Unit]
+Description=PostgreSQL log heartbeat — feeds postgresql-log-silence alert
+After=postgresql@{{ postgresql_version }}-main.service
+
+[Service]
+Type=oneshot
+User=postgres
+# RAISE LOG writes one line to the server log file that Alloy tails.
+# Session-level terse verbosity and raised log_min_error_statement suppress
+# the CONTEXT and STATEMENT companion lines, so each beat is exactly one line.
+ExecStart=/usr/bin/psql -X -q -c "SET log_error_verbosity = terse; SET log_min_error_statement = panic; DO 'BEGIN RAISE LOG ''pg-log-heartbeat: log pipeline liveness check''; END;'"
+SyslogIdentifier=pg-log-heartbeat

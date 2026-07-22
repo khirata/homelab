@@ -88,8 +88,11 @@ groups:
           description: "Alloy journal pipeline may have stopped."
 
       # PostgreSQL log silence — file logs via job="postgresql".
-      # Observed: 2–5 log lines per 5-min bucket, zero gaps over 24h.
-      # 10 min = 2 missed cycles before firing.
+      # An idle instance writes no WAL, skips checkpoints, and can log nothing
+      # for days, so organic logs cannot feed this alert. pg-log-heartbeat.timer
+      # (postgresql role) emits one LOG line every 5 min, making this rule an
+      # end-to-end check of postgres → log file → Alloy → Loki.
+      # 10 min = 2 missed heartbeats before firing.
       - uid: postgresql-log-silence
         title: "PostgreSQL log silence"
         condition: C

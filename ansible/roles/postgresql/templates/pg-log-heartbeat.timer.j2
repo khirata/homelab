@@ -1,0 +1,11 @@
+# Managed by Ansible — do not edit manually.
+# Template: roles/postgresql/templates/pg-log-heartbeat.timer.j2
+
+[Unit]
+Description=PostgreSQL log heartbeat timer
+
+[Timer]
+OnCalendar=*:0/{{ pg_log_heartbeat_interval_min }}
+
+[Install]
+WantedBy=timers.target

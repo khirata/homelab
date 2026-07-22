@@ -129,3 +129,8 @@ pg_backup_time: "02:00"
 pg_backup_offsite_enabled: false
 pg_backup_rclone_remote: ""
 pg_backup_rclone_bucket: ""
+
+# Log heartbeat — one LOG line every N minutes so the postgresql-log-silence
+# alert stays meaningful on an idle instance (see roles/postgresql).
+# Must be well under the alert's 10-minute silence window.
+pg_log_heartbeat_interval_min: 5
