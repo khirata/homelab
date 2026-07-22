@@ -129,6 +129,18 @@
         dest: "{{ render_dir }}/pg-backup.sh"
         mode: "0644"
 
+    - name: Render pg-log-heartbeat.service
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/postgresql/templates/pg-log-heartbeat.service.j2"
+        dest: "{{ render_dir }}/pg-log-heartbeat.service"
+        mode: "0644"
+
+    - name: Render pg-log-heartbeat.timer
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/postgresql/templates/pg-log-heartbeat.timer.j2"
+        dest: "{{ render_dir }}/pg-log-heartbeat.timer"
+        mode: "0644"
+
     - name: List rendered files
       ansible.builtin.find:
         paths: "{{ render_dir }}"

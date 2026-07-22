@@ -270,6 +270,23 @@ jobs:
           grep -q '^pg_dump -Fc' /tmp/rendered/pg-backup.sh \
             || { echo "::error::pg-backup.sh does not contain the expected pg_dump -Fc invocation"; exit 1; }
 
+      - name: Validate rendered PostgreSQL log-heartbeat service
+        run: |
+          set -euo pipefail
+
+          # pg-log-heartbeat.service runs psql as OS user postgres over the local
+          # socket (peer auth, same invariant as pg-backup.sh above). Adding -U or
+          # -h to this psql would reintroduce "Peer authentication failed" and
+          # silently kill the heartbeat that feeds the postgresql-log-silence alert.
+          if grep -E '^ExecStart=' /tmp/rendered/pg-log-heartbeat.service | grep -qE '[[:space:]]-(U|h)[[:space:]]'; then
+            echo "::error::pg-log-heartbeat.service passes -U or -h to psql, breaking peer auth for the postgres OS user (see User=)."
+            exit 1
+          fi
+          grep -q "RAISE LOG ''pg-log-heartbeat" /tmp/rendered/pg-log-heartbeat.service \
+            || { echo "::error::pg-log-heartbeat.service is missing the expected RAISE LOG heartbeat statement"; exit 1; }
+          grep -qE '^OnCalendar=\*:0/[0-9]+$' /tmp/rendered/pg-log-heartbeat.timer \
+            || { echo "::error::pg-log-heartbeat.timer OnCalendar does not match the expected every-N-minutes schedule"; exit 1; }
+
       - name: Show rendered Alloy configs
         run: |
           echo "=== alloy-server.alloy ===" && cat /tmp/rendered/alloy-server.alloy
