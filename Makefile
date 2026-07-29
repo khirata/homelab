@@ -46,18 +46,27 @@ INFISICAL_EXPORT = infisical export \
                      --env prod \
                      --domain $(INFISICAL_API_URL)
 
+# Committed list of the keys Infisical must serve. Uncommented entries are
+# required; `# KEY=` lines document optional ones without enforcing them.
+SECRETS_TEMPLATE = infisical-secrets.template.env
+
+# Bare KEY names from dotenv-formatted input — a file argument or stdin.
+KEYS_OF          = grep -ohE '^[A-Za-z_][A-Za-z0-9_]*'
+
 ## Default: dry-run check
 all: check
 
-## Guard: abort when Infisical hands back an empty secret set. Token auth already
-## turns a missing project grant into a 403, so this catches the residual case —
-## identity authorised but the environment genuinely holds nothing — which would
-## otherwise render every lookup('env', ...) blank and deploy empty credentials.
+## Guard: abort unless Infisical serves every key $(SECRETS_TEMPLATE) requires.
+## Token auth already turns a missing project grant into a 403; this catches the
+## cases that stay silent — an environment that is authorised but empty, or a key
+## renamed/dropped in the UI — which would otherwise render the matching
+## lookup('env', ...) blank and deploy an empty credential.
 _infisical-check:
-	@$(INFISICAL_TOKEN_SH); n=$$(INFISICAL_TOKEN=$$_t $(INFISICAL_EXPORT) \
-	   --format dotenv --silent | grep -c '^[A-Za-z_][A-Za-z0-9_]*='); \
+	@$(INFISICAL_TOKEN_SH); k=$$(mktemp); INFISICAL_TOKEN=$$_t $(INFISICAL_EXPORT) --format dotenv --silent | $(KEYS_OF) | sort -u > $$k; \
+	 n=$$(wc -l < $$k | tr -d ' '); miss=$$($(KEYS_OF) $(SECRETS_TEMPLATE) | sort -u | comm -23 - $$k | tr '\n' ' '); rm -f $$k; \
 	 test "$$n" -gt 0 || { echo '[infisical] 0 secrets in prod — assign the machine identity to the project, then retry' >&2; exit 1; }; \
-	 echo "[infisical] $$n secrets available"
+	 test -z "$$miss" || { echo "[infisical] missing from prod: $$miss" >&2; echo "[infisical] add them in the UI or via: infisical secrets set --file <filled copy of $(SECRETS_TEMPLATE)>" >&2; exit 1; }; \
+	 echo "[infisical] $$n secrets available, all $(SECRETS_TEMPLATE) keys present"
 
 ## Remove locally rendered/cached files (nothing to clean in this repo)
 clean:
