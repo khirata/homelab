@@ -207,3 +207,25 @@ Wazuh REST API  →  Grafana (API plugin)
 | Wazuh REST API | 55000 | HTTPS | localhost only | — |
 | Alloy self-metrics | 12345 | HTTP | local only | — |
 | Grafana UI | 3000 | HTTP | clients → siem-host | Grafana |
+
+---
+
+## External Ingress
+
+Public hostnames (`grafana.`, `wazuh.`, `infisical.`) are served through a
+Cloudflare Tunnel with Access SSO in front. The tunnel connector (`cloudflared`)
+runs as a native systemd service on each host and dials out to Cloudflare — no
+inbound ports are opened.
+
+| Hostname | Tunnel target | Notes |
+|---|---|---|
+| `grafana.<domain>` | `http://localhost:3000` | Grafana |
+| `infisical.<domain>` | `http://localhost:8080` | Infisical |
+| `wazuh.<domain>` | `http://localhost:5600` | nginx CF proxy → dashboard (see [wazuh.md](wazuh.md)) |
+
+**This is not deployed by this repo.** Tunnels, DNS records, Access policies and
+the `cloudflared` service are managed by
+[cloudflared-deployment](https://github.com/khirata/cloudflared-deployment)
+(Terraform + Ansible; tunnel tokens stored in Infisical under `/tunnels/<host>`).
+A freshly rebuilt host needs that repo's `make deploy` before public hostnames
+resolve to anything.

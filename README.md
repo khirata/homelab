@@ -6,6 +6,13 @@ DB servers, Secret manager
 Node-level agents (Wazuh Agent, Grafana Alloy node mode) are managed separately
 in [dotconfig](https://github.com/khirata/dotconfig) as part of base node setup.
 
+External ingress (Cloudflare Tunnel + Access SSO for `grafana.`, `wazuh.`,
+`infisical.`) is managed separately in
+[cloudflared-deployment](https://github.com/khirata/cloudflared-deployment).
+Nothing in this repo installs or configures `cloudflared` — a host rebuilt with
+`make deploy` alone will have all services running but no public hostnames until
+that repo's `make deploy` is run against it.
+
 ---
 
 ## Stack
