@@ -96,6 +96,32 @@ Create a Cloudflare Access application protecting `infisical.yourdomain.com` wit
 
 The Makefile wraps all `ansible-playbook` calls with `infisical run --`, which injects secrets as environment variables before Ansible starts. No Ansible changes were needed — the existing `lookup('env', ...)` calls in `group_vars/all/vars.yml` work unchanged.
 
+### Auth model — why the Makefile logs in explicitly
+
+The CLI does **not** read `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`. The only credential env var `run` and `export` honour is `INFISICAL_TOKEN`. Given neither, they fall back to whatever interactive `infisical login` session the operator happens to have — and a user account that is not a member of the project gets an **empty secret set with exit 0**, no error. That silently deploys blank credentials.
+
+So the Makefile exchanges the machine identity's credentials for a token first, then hands it over via `INFISICAL_TOKEN`:
+
+```make
+INFISICAL_UNIVERSAL_AUTH_CLIENT_ID     = $(INFISICAL_CLIENT_ID)
+INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET = $(INFISICAL_CLIENT_SECRET)
+
+INFISICAL_LOGIN    = infisical login --method=universal-auth \
+                       --domain=$(INFISICAL_API_URL) --plain --silent
+INFISICAL_TOKEN_SH = _t=$$($(INFISICAL_LOGIN)) && test -n "$$_t" || { ...abort... }
+```
+
+The credentials travel via the CLI's own env vars rather than `--client-id` / `--client-secret` flags, keeping the secret out of `ps` output and out of the recipe line make echoes.
+
+Under token auth a missing project grant becomes a loud `403 You are not a member of this project with ID …` instead of silence. The `_infisical-check` prerequisite on every deploy target covers the remaining case (authorised, but the environment is empty) by aborting when the export yields zero keys:
+
+```
+[infisical] 27 secrets available          # pass
+[infisical] 0 secrets in prod — assign the machine identity to the project, then retry
+```
+
+> **`INFISICAL_API_URL` must be the LAN address** (`http://<siem-host>:8080`). The Cloudflare Tunnel hostname sits behind Cloudflare Access, which answers unauthenticated API calls with a `302` to the Google login page — the CLI treats that as "no secrets" rather than an error. Access has no bypass for `/api`, and the CLI cannot send `CF-Access-Client-Id` headers.
+
 ### Normal deploy (secrets from Infisical)
 
 ```bash

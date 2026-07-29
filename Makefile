@@ -1,4 +1,4 @@
-.PHONY: all clean deploy check install-deps backup test deploy-ntfy-client deploy-siem deploy-dashboards deploy-infisical redeploy-infisical env
+.PHONY: all clean deploy check install-deps backup test deploy-ntfy-client deploy-siem deploy-wazuh deploy-dashboards deploy-infisical redeploy-infisical env _pre-deploy-backup _infisical-check
 
 -include .env
 export
@@ -6,17 +6,58 @@ export
 PLAYBOOK         = ansible/site.yml
 INVENTORY        = ansible/inventory/hosts.ini
 
+# Exchanges the machine identity's Universal Auth credentials for a short-lived
+# access token. The CLI does NOT read INFISICAL_CLIENT_ID/INFISICAL_CLIENT_SECRET
+# on its own — the only env var it honours is INFISICAL_TOKEN. Without an
+# explicit token it silently falls back to whatever `infisical login` session
+# the operator happens to have, and a user account with no membership on the
+# project returns an EMPTY secret set with exit 0 (see docs/infisical.md).
+# Token auth turns that same permissions gap into a loud 403.
+#
+# The credentials go through the CLI's own env vars rather than --client-id /
+# --client-secret flags, so the secret never lands in argv (world-readable via
+# `ps`) nor in the recipe line make echoes to the terminal. `export` above
+# publishes these to every recipe. Only `infisical login` reads them; `run` and
+# `export` ignore them entirely, hence the explicit token hand-off below.
+INFISICAL_UNIVERSAL_AUTH_CLIENT_ID     = $(INFISICAL_CLIENT_ID)
+INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET = $(INFISICAL_CLIENT_SECRET)
+
+INFISICAL_LOGIN  = infisical login --method=universal-auth \
+                     --domain=$(INFISICAL_API_URL) --plain --silent
+
+# Puts the token in $$_t, aborting when login fails or yields an empty string
+# (an empty INFISICAL_TOKEN would resurrect the silent user-session fallback).
+INFISICAL_TOKEN_SH = _t=$$($(INFISICAL_LOGIN)) && test -n "$$_t" \
+                       || { echo '[infisical] machine-identity login failed — check INFISICAL_CLIENT_ID/INFISICAL_CLIENT_SECRET in .env' >&2; exit 1; }
+
 # Wraps ansible-playbook commands to inject secrets from Infisical.
 # Requires INFISICAL_PROJECT_ID, INFISICAL_API_URL, and machine identity
 # credentials (INFISICAL_CLIENT_ID + INFISICAL_CLIENT_SECRET) in .env.
-INFISICAL_RUN    = infisical run \
+# INFISICAL_API_URL must be the LAN address: the Cloudflare Tunnel hostname sits
+# behind Cloudflare Access, which 302s unauthenticated API calls to a login page.
+INFISICAL_RUN    = $(INFISICAL_TOKEN_SH); INFISICAL_TOKEN=$$_t infisical run \
                      --projectId $(INFISICAL_PROJECT_ID) \
                      --env prod \
                      --domain $(INFISICAL_API_URL) \
                      --
 
+INFISICAL_EXPORT = infisical export \
+                     --projectId $(INFISICAL_PROJECT_ID) \
+                     --env prod \
+                     --domain $(INFISICAL_API_URL)
+
 ## Default: dry-run check
 all: check
+
+## Guard: abort when Infisical hands back an empty secret set. Token auth already
+## turns a missing project grant into a 403, so this catches the residual case —
+## identity authorised but the environment genuinely holds nothing — which would
+## otherwise render every lookup('env', ...) blank and deploy empty credentials.
+_infisical-check:
+	@$(INFISICAL_TOKEN_SH); n=$$(INFISICAL_TOKEN=$$_t $(INFISICAL_EXPORT) \
+	   --format dotenv --silent | grep -c '^[A-Za-z_][A-Za-z0-9_]*='); \
+	 test "$$n" -gt 0 || { echo '[infisical] 0 secrets in prod — assign the machine identity to the project, then retry' >&2; exit 1; }; \
+	 echo "[infisical] $$n secrets available"
 
 ## Remove locally rendered/cached files (nothing to clean in this repo)
 clean:
@@ -32,23 +73,23 @@ backup:
 	   ! systemctl is-failed --quiet pg-backup.service"
 
 ## Deploy the SIEM server stack (runs backup first if pg-backup.timer exists)
-deploy: _pre-deploy-backup
+deploy: _infisical-check _pre-deploy-backup
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY)
 
 ## Deploy only the SIEM server (runs backup first)
-deploy-siem: _pre-deploy-backup
+deploy-siem: _infisical-check _pre-deploy-backup
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server
 
 ## Deploy only the Wazuh stack containers (indexer, dashboard, nginx proxy) — no backup pre-step
-deploy-wazuh:
+deploy-wazuh: _infisical-check
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags wazuh_stack
 
 ## Deploy only Grafana dashboards (no stack restart)
-deploy-dashboards:
+deploy-dashboards: _infisical-check
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --tags dashboards
 
 ## Update ntfy-client.env on all hosts (after rotating NTFY_TOKEN)
-deploy-ntfy-client:
+deploy-ntfy-client: _infisical-check
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --tags ntfy_client_env
 
 ## Bootstrap Infisical — uses .env directly (first deploy, Infisical not yet running)
@@ -57,7 +98,7 @@ deploy-infisical:
 	ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server,postgresql_server --tags docker,postgresql,infisical
 
 ## Update a running Infisical — injects secrets from Infisical (use after initial bootstrap)
-redeploy-infisical:
+redeploy-infisical: _infisical-check
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags infisical
 
 ## NOTE: previously this used a single &&/|| chain, so a pg-backup unit that
@@ -74,7 +115,7 @@ _pre-deploy-backup:
 	   echo '[backup] pre-deploy snapshot complete'"
 
 ## Dry-run (no changes applied)
-check:
+check: _infisical-check
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --check
 
 ## Install required Ansible collections
@@ -94,8 +135,4 @@ test:
 ## Note: prefer `infisical run -- ansible-playbook ...` when possible — it never
 ## prints secrets to stdout (no terminal scroll-back exposure).
 env:
-	@infisical export \
-	  --projectId $(INFISICAL_PROJECT_ID) \
-	  --env prod \
-	  --domain $(INFISICAL_API_URL) \
-	  --format dotenv
+	@$(INFISICAL_TOKEN_SH); INFISICAL_TOKEN=$$_t $(INFISICAL_EXPORT) --format dotenv
