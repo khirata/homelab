@@ -56,7 +56,8 @@ loki.source.syslog "unifi_laf" {
     syslog_format = "rfc3164"  // Unifi sends BSD syslog, not RFC5424
     labels        = { job = "unifi", site = "lafayette" }
   }
-  forward_to = [loki.write.siem.receiver]
+  relabel_rules = loki.relabel.unifi_syslog.rules
+  forward_to    = [loki.write.siem.receiver]
 }
 
 loki.source.syslog "unifi_sak" {
@@ -66,7 +67,38 @@ loki.source.syslog "unifi_sak" {
     syslog_format = "rfc3164"
     labels        = { job = "unifi", site = "sakamoto" }
   }
-  forward_to = [loki.write.siem.receiver]
+  relabel_rules = loki.relabel.unifi_syslog.rules
+  forward_to    = [loki.write.siem.receiver]
+}
+
+// Promote parsed syslog fields to real labels.
+// Without this, syslog streams carry only {job, site} — every GW device at a
+// site collapses into one stream with no 'host', so the Log Explorer "Host"
+// dropdown (built from the 'host' label) never lists any gateway.
+// Cardinality is bounded: a handful of GW/AP/switch hostnames per site.
+loki.relabel "unifi_syslog" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__syslog_message_hostname"]
+    target_label  = "host"
+  }
+
+  // Fallback for devices that omit the hostname field: use the sender IP so
+  // the stream is still attributable instead of silently losing the label.
+  rule {
+    source_labels = ["host", "__syslog_connection_ip_address"]
+    regex         = "^;(.+)$"
+    target_label  = "host"
+    replacement   = "$1"
+  }
+
+  // Process name (ubios-udapi-server, hostapd, openvpn, kernel, …) — lets
+  // alerts and dashboards target VPN daemons without regex-scanning the body.
+  rule {
+    source_labels = ["__syslog_message_app_name"]
+    target_label  = "appname"
+  }
 }
 
 // ── Systemd journal → Loki ──────────────────────────────────────────────
