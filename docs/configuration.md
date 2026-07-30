@@ -12,6 +12,23 @@ two different places:
 needed to reach Infisical, the values `make deploy-infisical` renders *before* Infisical
 exists, and config that is not in the project. See [.env.example](../.env.example).
 
+## In `.env` — Infisical CLI credentials
+
+Read by the **Infisical CLI** so the Makefile can authenticate and pull everything else.
+Direction: this repo → Infisical.
+
+| Variable | Purpose |
+|---|---|
+| `INFISICAL_API_URL` | Infisical API endpoint — must be the LAN address, see [infisical.md](infisical.md) |
+| `INFISICAL_PROJECT_ID` | Project the secrets live in |
+| `INFISICAL_CLIENT_ID` | Machine identity Universal Auth client ID |
+| `INFISICAL_CLIENT_SECRET` | Machine identity Universal Auth client secret |
+
+> Do not confuse these with `INFISICAL_CLIENT_ID_GOOGLE` / `INFISICAL_CLIENT_SECRET_GOOGLE`.
+> Despite the near-identical names, those are a Google Cloud OAuth app used for **web UI
+> login** and are useless to the CLI — see
+> [Google sign-in for the Infisical web UI](#google-sign-in-for-the-infisical-web-ui).
+
 ## In `.env` — connection
 
 | Variable | Purpose |
@@ -36,11 +53,46 @@ in sync when rotating.
 | `INFISICAL_AUTH_SECRET` | Infisical JWT signing — min 32 chars | `openssl rand -hex 32` |
 | `INFISICAL_SITE_URL` | Infisical cookie/CORS origin (e.g. `http://10.x.x.x:8080`) | — |
 | `INFISICAL_EXTERNAL_URL` | Public CF Tunnel URL (optional) — overrides `SITE_URL` | — |
-| `INFISICAL_CLIENT_ID_GOOGLE` / `_SECRET_GOOGLE` | Google OAuth sign-in (optional) | Google Cloud Console |
+| `INFISICAL_CLIENT_ID_GOOGLE` / `_SECRET_GOOGLE` | Infisical **web UI** sign-in via Google (optional) | Google Cloud Console |
 
 > **CRITICAL — `INFISICAL_ENCRYPTION_KEY`**: This key encrypts all secrets stored in Infisical.
 > If it changes, all stored secrets become unrecoverable. Never store it in Infisical itself.
 > Back up your `.env` file securely.
+
+### Google sign-in for the Infisical web UI
+
+`INFISICAL_CLIENT_ID_GOOGLE` and `INFISICAL_CLIENT_SECRET_GOOGLE` are a **Google Cloud
+OAuth 2.0 client**, created in Google Cloud Console. They are consumed by the Infisical
+**server**, and their only effect is to add a **Sign in with Google** button to the
+Infisical web UI login page. Direction: a human → Infisical, via Google.
+
+They do nothing for the CLI. `make deploy-*`, `make check`, and every Ansible run
+authenticate with the machine identity (`INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`)
+and never involve Google.
+
+| | `INFISICAL_CLIENT_ID` / `_SECRET` | `INFISICAL_CLIENT_ID_GOOGLE` / `_SECRET_GOOGLE` |
+|---|---|---|
+| Issued by | Infisical — machine identity, Universal Auth | Google Cloud Console — OAuth 2.0 client |
+| Consumed by | Infisical **CLI**, on your workstation | Infisical **server**, in the container |
+| Authenticates | this repo → Infisical | a human → Infisical web UI |
+| Required? | yes — every deploy target needs it | no — omit to leave Google sign-in disabled |
+
+**How they reach the container.**
+[`group_vars/all/vars.yml`](../ansible/group_vars/all/vars.yml) maps them to
+`vault_infisical_client_id_google` / `vault_infisical_client_secret_google`, and
+[`infisical.env.j2`](../ansible/roles/infisical/templates/infisical.env.j2) renders them
+under Infisical's own upstream names, `CLIENT_ID_GOOGLE_LOGIN` and
+`CLIENT_SECRET_GOOGLE_LOGIN`. That block is conditional on the ID being non-empty, so
+leaving both blank omits Google sign-in entirely rather than rendering broken config.
+
+**The redirect URI must match `SITE_URL`.** Infisical builds its OAuth callback as
+`<SITE_URL>/api/v1/sso/google`, and the template sets `SITE_URL` from
+`INFISICAL_EXTERNAL_URL` when present, falling back to `INFISICAL_SITE_URL`. Setting
+`INFISICAL_EXTERNAL_URL` therefore invalidates a redirect URI registered against the LAN
+address — register both in Google Cloud Console if you use both.
+
+**SMTP must be configured** when Google sign-in is enabled. Full walkthrough:
+[infisical.md](infisical.md#google-oauth-cloudflare-access-sso).
 
 ## In `.env` — config not stored in Infisical
 

@@ -25,7 +25,18 @@ After the initial deploy, create the admin account and populate secrets:
 
 ## Google OAuth (Cloudflare Access SSO)
 
+**Scope: web UI login only.** Everything in this section configures how a *human* signs in to the Infisical web UI at `https://infisical.yourdomain.com`. It has no effect on the CLI — `make deploy-*` and every Ansible run authenticate with the machine identity described under [CLI Integration](#cli-integration), and never touch Google.
+
 Infisical's free tier supports Google OAuth natively. Since Cloudflare Access already uses Google as its identity provider, the same Google accounts authenticate both layers — users effectively have a single identity across the homelab.
+
+> **`INFISICAL_CLIENT_ID_GOOGLE` is not `INFISICAL_CLIENT_ID`.** The names differ by a suffix and sit near each other in `.env`, but they are unrelated credentials from different issuers:
+>
+> | | Issued by | Consumed by | Authenticates |
+> |---|---|---|---|
+> | `INFISICAL_CLIENT_ID` / `_SECRET` | Infisical (machine identity) | Infisical **CLI** | this repo → Infisical |
+> | `INFISICAL_CLIENT_ID_GOOGLE` / `_SECRET_GOOGLE` | Google Cloud Console (OAuth app) | Infisical **server** | a human → Infisical web UI |
+>
+> See [configuration.md](configuration.md#google-sign-in-for-the-infisical-web-ui) for the full breakdown.
 
 ### Why not JWT proxy (like Grafana)?
 
@@ -49,12 +60,26 @@ Copy the **Client ID** and **Client Secret**.
 # Public CF Tunnel URL — sets SITE_URL so OAuth redirects resolve correctly
 INFISICAL_EXTERNAL_URL=https://infisical.yourdomain.com
 
-# Google OAuth credentials
+# Google Cloud OAuth app from step 1 — read by the Infisical SERVER to render
+# the "Sign in with Google" button on the web UI login page.
 INFISICAL_CLIENT_ID_GOOGLE=<client-id>
 INFISICAL_CLIENT_SECRET_GOOGLE=<client-secret>
 ```
 
-> SMTP must be configured — Infisical requires it when Google OAuth is enabled.
+These are bootstrap values: `make deploy-infisical` renders `infisical.env` before Infisical is reachable, so they must exist in `.env` even after you also store them in the project (step 3).
+
+What Ansible does with them:
+
+| `.env` | Ansible var ([vars.yml](../ansible/group_vars/all/vars.yml)) | Rendered into `infisical.env` |
+|---|---|---|
+| `INFISICAL_CLIENT_ID_GOOGLE` | `vault_infisical_client_id_google` | `CLIENT_ID_GOOGLE_LOGIN` |
+| `INFISICAL_CLIENT_SECRET_GOOGLE` | `vault_infisical_client_secret_google` | `CLIENT_SECRET_GOOGLE_LOGIN` |
+
+`CLIENT_ID_GOOGLE_LOGIN` / `CLIENT_SECRET_GOOGLE_LOGIN` are Infisical's own upstream variable names. The block in [`infisical.env.j2`](../ansible/roles/infisical/templates/infisical.env.j2) is guarded by `{% if vault_infisical_client_id_google %}`, so leaving both blank omits Google sign-in cleanly — the UI falls back to email/password only.
+
+> **Keep the redirect URI and `SITE_URL` in sync.** `SITE_URL` resolves to `INFISICAL_EXTERNAL_URL` when set, otherwise `INFISICAL_SITE_URL`, and Infisical derives its callback from it as `<SITE_URL>/api/v1/sso/google`. Changing which URL is in play without updating the authorized redirect URI in Google Cloud Console breaks sign-in with a `redirect_uri_mismatch`.
+
+> **SMTP must be configured** — Infisical requires it when Google OAuth is enabled.
 
 **3. Add secrets to Infisical project**
 
