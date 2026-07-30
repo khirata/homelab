@@ -108,6 +108,8 @@ In Cloudflare Tunnel config add a public hostname:
 
 Create a Cloudflare Access application protecting `infisical.yourdomain.com` with the same email policy as your other services. This ensures only whitelisted Google accounts can reach the Infisical login page at all.
 
+> This hostname is for **browsers only**. Do not point `INFISICAL_API_URL` at it — the CLI must keep using the LAN address, and no Access service-token exception is configured for it. See [`INFISICAL_API_URL` must be the LAN address](#infisical_api_url-must-be-the-lan-address).
+
 ### User experience
 
 1. User navigates to `https://infisical.yourdomain.com`
@@ -145,7 +147,30 @@ Under token auth a missing project grant becomes a loud `403 You are not a membe
 [infisical] 0 secrets in prod — assign the machine identity to the project, then retry
 ```
 
-> **`INFISICAL_API_URL` must be the LAN address** (`http://<siem-host>:8080`). The Cloudflare Tunnel hostname sits behind Cloudflare Access, which answers unauthenticated API calls with a `302` to the Google login page — the CLI treats that as "no secrets" rather than an error. Access has no bypass for `/api`, and the CLI cannot send `CF-Access-Client-Id` headers.
+### `INFISICAL_API_URL` must be the LAN address
+
+**Set `INFISICAL_API_URL` to the LAN address (`http://<siem-host>:8080`), never the Cloudflare Tunnel hostname.**
+
+The tunnel hostname sits behind Cloudflare Access, which answers unauthenticated API calls with a `302` to the Google login page. The CLI treats that redirect as "no secrets" rather than an error — the same silent-empty failure mode `_infisical-check` exists to catch. Point `INFISICAL_API_URL` at the tunnel and every deploy either aborts on the guard or, if the guard is bypassed, renders blank credentials.
+
+#### Why not use `INFISICAL_CUSTOM_HEADERS` (deliberate decision)
+
+There **is** a supported way to make the CLI work through Cloudflare Access. Access supports Service Auth policies with service tokens, and the Infisical CLI can attach arbitrary headers via the `INFISICAL_CUSTOM_HEADERS` environment variable:
+
+```bash
+# Supported by the CLI — space-separated Name=Value pairs. We do NOT use this.
+export INFISICAL_CUSTOM_HEADERS="CF-Access-Client-Id=<id> CF-Access-Client-Secret=<secret>"
+```
+
+This works, and Infisical documents Cloudflare Access as its motivating use case. **We deliberately do not use it.** The reasons:
+
+- **It collapses the layer it appears to add.** `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` would have to live in `.env` — the service token is needed to *reach* Infisical, so it cannot be stored in Infisical. That puts it in the same file, on the same host, at the same trust level as `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`. Any compromise yielding one yields both, so against the likeliest threat — a stolen `.env` or a compromised workstation — two layers behave as one.
+- **The added credential is broader than the one it guards.** The Infisical machine identity is scoped to a single project with Reader. A Cloudflare Access service token is an account-level credential whose reach depends entirely on policy hygiene; one careless `Any Access Service Token` include on another application (Grafana, the Wazuh dashboard) extends it further than the Infisical identity could ever go. Adding it to `.env` raises that file's value by more than one application's worth.
+- **It solves a problem we do not have.** The only consumer of the Infisical API is an operator at a keyboard. CI never deploys — [`ci.yml`](../.github/workflows/ci.yml) only lints, syntax-checks, and renders templates against mock vars, and holds no real secret. A service token is the right tool for an unattended runner that cannot join the network; there isn't one here.
+
+**For off-LAN deploys, join the LAN rather than exposing the API.** Cloudflare WARP on the same Zero Trust account (or Tailscale) puts you on the LAN after an interactive Google login and device posture check, then the normal LAN path applies unchanged. That factor is genuinely independent of `.env`, and the Infisical API never needs a public hostname at all.
+
+> This constrains the **CLI only**. Exposing the Infisical *web UI* through the tunnel behind Access is unaffected and still recommended — see [Google OAuth](#google-oauth-cloudflare-access-sso).
 
 ### Normal deploy (secrets from Infisical)
 
