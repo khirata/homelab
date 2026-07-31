@@ -64,6 +64,14 @@ prometheus.relabel "redis_instance" {
     replacement  = "{{ ansible_hostname }}"
     target_label = "instance"
   }
+
+  // prometheus.exporter.redis defaults to job="integrations/redis"; force it to
+  // "redis". job_name on the scrape above does not override the exporter's own
+  // label — same reason the unix exporter needs this rule.
+  rule {
+    target_label = "job"
+    replacement  = "redis"
+  }
 }
 
 {% endif %}
