@@ -395,6 +395,11 @@ groups:
         annotations:
           summary: "WireGuard peer on {{ '{{' }} $labels.iface {{ '}}' }} at {{ '{{' }} $labels.site {{ '}}' }} has not reconnected"
           description: >-
-            More peer disconnects than reconnects on this tunnel over the last
-            24h. Roaming clients coming and going are normal and self-balance;
-            a persistent imbalance means a tunnel is stuck down.
+            Over the last 7 days this tunnel logged more peer disconnects than
+            reconnects — it dropped and never came back. Roaming laptops and
+            phones (wgsrv*) are deliberately excluded from this rule, so this is
+            an always-on inter-site link, not normal client churn. Devices
+            policy-routed over it are silently falling back to their local WAN:
+            still online, but egressing from the wrong site. Check the peer
+            endpoint still resolves, then toggle the tunnel on the gateway to
+            force a re-handshake.
