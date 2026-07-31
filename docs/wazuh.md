@@ -123,6 +123,27 @@ OpenSearch security config is applied once via `securityadmin.sh`; subsequent ru
 
 ---
 
+## Agents
+
+The agent package on the nodes (laf1, laf2) is installed out of band — `roles/wazuh_agent`
+manages only the systemd surface around it (start timeout, `OnFailure` ntfy drop-in, enabled
++ running). The role is a no-op on hosts where `wazuh-agent.service` is absent.
+
+Enrollment state lives in `/var/ossec/etc/client.keys` on both the manager and the agent, and is
+**not** managed by Ansible. After a manager rebuild, verify the restored keys match the agents
+rather than assuming enrollment succeeded — a mismatch does not always surface as an obvious error:
+
+```bash
+# On the manager and each agent — the hashes must match per agent
+sudo awk '{print $2, $4}' /var/ossec/etc/client.keys | \
+  while read n k; do echo "$n $(echo -n $k | sha256sum | cut -c1-16)"; done
+```
+
+Agent IDs are also a signal: preserved IDs mean the keys were restored, whereas IDs restarting
+from `001` mean the agents re-enrolled from scratch.
+
+---
+
 ## Operations
 
 ```bash
@@ -219,6 +240,37 @@ interface in production.**
 ---
 
 ## Troubleshooting
+
+**Agent shows `Active` on the manager but produces no alerts**
+
+The most misleading failure in this stack. `agent_control -l` reports `Active` based on keepalives
+from `wazuh-agentd` alone, so an agent whose `wazuh-logcollector` is dead still looks perfectly
+healthy while dropping every log-based security event.
+
+Root cause seen on laf2 (broken for four weeks before anyone noticed): the packaged unit is
+`Type=forking` with `TimeoutSec=45`, and `wazuh-control start` brings the daemons up one at a time.
+On a slow boot the sequence overran 45s, systemd terminated the unit mid-start, and
+`wazuh-logcollector` / `wazuh-modulesd` never launched — while the already-started `wazuh-agentd`
+kept running orphaned and kept sending keepalives.
+
+Always check the daemon set, not just the unit or the manager's agent list:
+
+```bash
+sudo /var/ossec/bin/wazuh-control status   # all five daemons must be running
+```
+
+`wazuh-logcollector` missing is the tell. `roles/wazuh_agent` now raises `TimeoutStartSec` and wires
+an `OnFailure` ntfy drop-in so this fails loudly instead of silently.
+
+To confirm collection end to end, generate an event on the agent and look for it on the manager:
+
+```bash
+# On the agent
+sudo -k; sudo /usr/bin/id >/dev/null
+
+# On the manager — rule 100200, within a few seconds
+sudo grep '"name":"<agent>"' /var/ossec/logs/alerts/alerts.json | tail -5
+```
 
 **"Application Not Found" after login**
 

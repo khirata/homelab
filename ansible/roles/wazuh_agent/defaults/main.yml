@@ -1,0 +1,5 @@
+---
+# The packaged wazuh-agent.service ships with TimeoutSec=45. On slower nodes the
+# `wazuh-control start` sequence can exceed that at boot, and systemd then kills
+# the unit part-way through — see tasks/main.yml for the failure mode.
+wazuh_agent_start_timeout: 300
