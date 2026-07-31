@@ -40,6 +40,33 @@ prometheus.relabel "node_instance" {
   }
 }
 
+{% if alloy_redis_addr %}
+// ── Redis metrics ───────────────────────────────────────────────────────
+// Alloy embeds oliver006/redis_exporter, so no separate exporter service is
+// needed — metrics ride the same remote_write path as node metrics.
+prometheus.exporter.redis "redis" {
+  redis_addr     = "{{ alloy_redis_addr }}"
+  redis_password = "{{ vault_redis_password }}"
+}
+
+prometheus.scrape "redis" {
+  targets    = prometheus.exporter.redis.redis.targets
+  forward_to = [prometheus.relabel.redis_instance.receiver]
+  job_name   = "redis"
+}
+
+prometheus.relabel "redis_instance" {
+  forward_to = [prometheus.remote_write.siem.receiver]
+
+  // The exporter reports instance="{{ alloy_redis_addr }}", which is identical
+  // on every host; use the hostname so the dashboard's $instance is meaningful.
+  rule {
+    replacement  = "{{ ansible_hostname }}"
+    target_label = "instance"
+  }
+}
+
+{% endif %}
 // ── Prometheus remote write → siem ──────────────────────────────────────
 prometheus.remote_write "siem" {
   endpoint {

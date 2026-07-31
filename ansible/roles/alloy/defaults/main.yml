@@ -12,3 +12,8 @@ alloy_pg_log_dir: ""
 # The prometheus_exporter_unix textfile block reads *.prom files from this path.
 # Example: /var/lib/node_exporter/textfile_collector
 alloy_textfile_dir: ""
+
+# Set to the local Redis address to enable Redis metrics collection.
+# Alloy has a built-in Redis exporter, so no separate exporter service is needed.
+# Requires vault_redis_password. Example: 127.0.0.1:6379
+alloy_redis_addr: ""

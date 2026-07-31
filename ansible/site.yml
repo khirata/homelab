@@ -46,6 +46,7 @@
   become: true
   vars:
     ansible_remote_tmp: /tmp
+    alloy_redis_addr: "127.0.0.1:{{ redis_port }}"
   roles:
     - ntfy_client
     - redis

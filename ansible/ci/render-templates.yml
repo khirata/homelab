@@ -76,6 +76,28 @@
         dest: "{{ render_dir }}/alloy-server.alloy"
         mode: "0644"
 
+    # Rendered twice to cover both sides of the optional-exporter conditionals
+    # (Redis / PostgreSQL logs / textfile collector).
+    - name: Render alloy-node.alloy (node mode, optional exporters off)
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/alloy/templates/alloy-node.alloy.j2"
+        dest: "{{ render_dir }}/alloy-node-minimal.alloy"
+        mode: "0644"
+      vars:
+        alloy_pg_log_dir: ""
+        alloy_textfile_dir: ""
+        alloy_redis_addr: ""
+
+    - name: Render alloy-node.alloy (node mode, optional exporters on)
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/alloy/templates/alloy-node.alloy.j2"
+        dest: "{{ render_dir }}/alloy-node-full.alloy"
+        mode: "0644"
+      vars:
+        alloy_pg_log_dir: /var/log/postgresql
+        alloy_textfile_dir: /var/lib/node_exporter/textfile_collector
+        alloy_redis_addr: "127.0.0.1:6379"
+
     # ── Redis / Infisical templates ───────────────────────────────────────
 
     - name: Render redis.conf
