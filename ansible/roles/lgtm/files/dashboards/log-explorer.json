@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "Browse all Loki log streams — systemd journal, Docker containers, Unifi syslog, and PostgreSQL logs. Filter by job, host, unit (journal), and search term.",
+  "description": "Browse all Loki log streams — systemd journal, Docker containers, Unifi syslog, and PostgreSQL logs. Filter by job, host, site (Unifi), unit (journal), and search term.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -66,7 +66,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (job)(count_over_time({job=~\"$job\", host=~\"$host\"} | unit=~\"$unit\" [$__interval]))",
+          "expr": "sum by (job)(count_over_time({job=~\"$job\", host=~\"$host\", site=~\"$site\"} | unit=~\"$unit\" [$__interval]))",
           "legendFormat": "{{job}}",
           "refId": "A"
         }
@@ -91,7 +91,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "{job=~\"$job\", host=~\"$host\"} | unit=~\"$unit\" |~ \"$search\"",
+          "expr": "{job=~\"$job\", host=~\"$host\", site=~\"$site\"} | unit=~\"$unit\" |~ \"$search\"",
           "legendFormat": "",
           "refId": "A"
         }
@@ -126,6 +126,7 @@
         "type": "custom"
       },
       {
+        "allValue": ".*",
         "current": {},
         "datasource": {"type": "loki", "uid": "loki"},
         "definition": "",
@@ -138,6 +139,27 @@
         "query": {
           "label": "host",
           "stream": "{job=~\"$job\"}",
+          "type": 1
+        },
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {},
+        "datasource": {"type": "loki", "uid": "loki"},
+        "definition": "",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Site",
+        "multi": true,
+        "name": "site",
+        "options": [],
+        "query": {
+          "label": "site",
+          "stream": "{job=\"unifi\"}",
           "type": 1
         },
         "refresh": 2,
