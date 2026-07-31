@@ -26,15 +26,31 @@ Each site gets its own listener port so the `site` label is indexed at ingest:
 |---|---|---|
 | `job` | static | `unifi` |
 | `site` | listener port (514 = lafayette, 515 = sakamoto) | `lafayette` |
-| `host` | `__syslog_message_hostname`, falling back to sender IP | `UCG-Fiber` |
-| `appname` | `__syslog_message_app_name` | `ubios-udapi-server` |
+| `host` | `__syslog_message_hostname`, else parsed from the message body | `UCG-Fiber` |
 
-`host` and `appname` are promoted from parsed syslog fields by the
-`loki.relabel "unifi_syslog"` block in `alloy-server.alloy.j2`. Without that
-relabel the syslog streams carry only `{job, site}`, so gateways never appear in
-the **Host** dropdown of the Log Explorer dashboard — the logs arrive fine, they
-are just unattributed. If gateways go missing from that dropdown again, check
-this relabel block first.
+Without a `host` label the syslog streams carry only `{job, site}`, so gateways
+never appear in the **Host** dropdown of the Log Explorer dashboard — the logs
+arrive fine, they are just unattributed. If gateways go missing from that
+dropdown again, start with the two stages below in `alloy-server.alloy.j2`.
+
+`host` is populated in two stages, because Unifi's RFC3164 output is
+inconsistent:
+
+1. `loki.relabel "unifi_syslog"` promotes `__syslog_message_hostname`. Measured
+   against live traffic this covers only about **a third** of lines.
+2. `loki.process "unifi_syslog"` recovers the rest from the start of the message
+   body, which always begins with the device name. `stage.match` restricts this
+   to lines the parser could not resolve, since on lines it *did* resolve the
+   body may begin with the process tag instead (`hostapd[10291]: …`).
+
+Stage 1 alone would be worse than no label at all: the dropdown would look
+functional while silently hiding two thirds of each device's logs. Verified
+after deploy — 100% of Unifi lines carry a `host`, and the only values present
+are real device names.
+
+There is no `appname` label. `__syslog_message_app_name` is never populated for
+this RFC3164 traffic, and no alert or dashboard needs it — the VPN rules match
+on line content instead.
 
 ---
 
