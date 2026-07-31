@@ -33,8 +33,13 @@ INFISICAL_TOKEN_SH = _t=$$($(INFISICAL_LOGIN)) && test -n "$$_t" \
 # Wraps ansible-playbook commands to inject secrets from Infisical.
 # Requires INFISICAL_PROJECT_ID, INFISICAL_API_URL, and machine identity
 # credentials (INFISICAL_CLIENT_ID + INFISICAL_CLIENT_SECRET) in .env.
-# INFISICAL_API_URL must be the LAN address: the Cloudflare Tunnel hostname sits
-# behind Cloudflare Access, which 302s unauthenticated API calls to a login page.
+# INFISICAL_API_URL must be the LAN address, never the Cloudflare Tunnel
+# hostname: the tunnel sits behind Cloudflare Access, which 302s unauthenticated
+# API calls to a login page and the CLI reads that as "no secrets".
+# INFISICAL_CUSTOM_HEADERS could carry an Access service token past this, but we
+# deliberately do not — it would place a broader, account-level credential in
+# .env beside the Infisical one, adding no independent layer. Use WARP to reach
+# the LAN when off-site. Rationale: docs/infisical.md.
 INFISICAL_RUN    = $(INFISICAL_TOKEN_SH); INFISICAL_TOKEN=$$_t infisical run \
                      --projectId $(INFISICAL_PROJECT_ID) \
                      --env prod \

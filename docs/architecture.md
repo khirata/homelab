@@ -220,7 +220,7 @@ inbound ports are opened.
 | Hostname | Tunnel target | Notes |
 |---|---|---|
 | `grafana.<domain>` | `http://localhost:3000` | Grafana |
-| `infisical.<domain>` | `http://localhost:8080` | Infisical |
+| `infisical.<domain>` | `http://localhost:8080` | Infisical **web UI only** — the CLI uses the LAN address, see [infisical.md](infisical.md#infisical_api_url-must-be-the-lan-address) |
 | `wazuh.<domain>` | `http://localhost:5600` | nginx CF proxy → dashboard (see [wazuh.md](wazuh.md)) |
 
 **This is not deployed by this repo.** Tunnels, DNS records, Access policies and

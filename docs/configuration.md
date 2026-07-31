@@ -19,7 +19,7 @@ Direction: this repo → Infisical.
 
 | Variable | Purpose |
 |---|---|
-| `INFISICAL_API_URL` | Infisical API endpoint — must be the LAN address, see [infisical.md](infisical.md) |
+| `INFISICAL_API_URL` | Infisical API endpoint — **must be the LAN address**, never the Cloudflare Tunnel hostname |
 | `INFISICAL_PROJECT_ID` | Project the secrets live in |
 | `INFISICAL_CLIENT_ID` | Machine identity Universal Auth client ID |
 | `INFISICAL_CLIENT_SECRET` | Machine identity Universal Auth client secret |
@@ -28,6 +28,13 @@ Direction: this repo → Infisical.
 > Despite the near-identical names, those are a Google Cloud OAuth app used for **web UI
 > login** and are useless to the CLI — see
 > [Google sign-in for the Infisical web UI](#google-sign-in-for-the-infisical-web-ui).
+
+These four are the *only* credentials needed to reach Infisical, and that is deliberate.
+`INFISICAL_API_URL` stays on the LAN address so no Cloudflare Access service token is
+required; adding one would put a broader, account-level credential in this same file
+beside the machine identity without adding an independent layer. Off-site, reach the LAN
+over WARP rather than exposing the API. Full rationale:
+[`INFISICAL_API_URL` must be the LAN address](infisical.md#infisical_api_url-must-be-the-lan-address).
 
 ## In `.env` — connection
 
