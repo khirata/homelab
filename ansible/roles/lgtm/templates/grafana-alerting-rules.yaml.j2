@@ -294,10 +294,11 @@ groups:
         annotations:
           summary: "Tunnel {{ '{{' }} $labels.iface {{ '}}' }} at {{ '{{' }} $labels.site {{ '}}' }} is released from WAN and has not recovered"
           description: >-
-            A WireGuard tunnel was released as a WAN interface and no matching
-            "controls" event followed. Devices policy-routed over this tunnel are
-            now silently falling back to the local WAN — they still have internet,
-            but via the wrong site. Re-resolve the peer endpoint by toggling the
+            Over the last 7 days this tunnel was released as a WAN interface with
+            no matching "controls" event following it, so it is still detached.
+            Devices policy-routed over it are silently falling back to the local
+            WAN — still online, but egressing from the wrong site, which is why
+            nothing looks "down". Re-resolve the peer endpoint by toggling the
             tunnel on the gateway.
 
       # Peer churn. Normal is 3–10 connect events/day per site; 10 connect or
@@ -395,6 +396,11 @@ groups:
         annotations:
           summary: "WireGuard peer on {{ '{{' }} $labels.iface {{ '}}' }} at {{ '{{' }} $labels.site {{ '}}' }} has not reconnected"
           description: >-
-            More peer disconnects than reconnects on this tunnel over the last
-            24h. Roaming clients coming and going are normal and self-balance;
-            a persistent imbalance means a tunnel is stuck down.
+            Over the last 7 days this tunnel logged more peer disconnects than
+            reconnects — it dropped and never came back. Roaming laptops and
+            phones (wgsrv*) are deliberately excluded from this rule, so this is
+            an always-on inter-site link, not normal client churn. Devices
+            policy-routed over it are silently falling back to their local WAN:
+            still online, but egressing from the wrong site. Check the peer
+            endpoint still resolves, then toggle the tunnel on the gateway to
+            force a re-handshake.

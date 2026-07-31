@@ -57,7 +57,7 @@ loki.source.syslog "unifi_laf" {
     labels        = { job = "unifi", site = "lafayette" }
   }
   relabel_rules = loki.relabel.unifi_syslog.rules
-  forward_to    = [loki.write.siem.receiver]
+  forward_to    = [loki.process.unifi_syslog.receiver]
 }
 
 loki.source.syslog "unifi_sak" {
@@ -68,13 +68,13 @@ loki.source.syslog "unifi_sak" {
     labels        = { job = "unifi", site = "sakamoto" }
   }
   relabel_rules = loki.relabel.unifi_syslog.rules
-  forward_to    = [loki.write.siem.receiver]
+  forward_to    = [loki.process.unifi_syslog.receiver]
 }
 
-// Promote parsed syslog fields to real labels.
-// Without this, syslog streams carry only {job, site} — every GW device at a
-// site collapses into one stream with no 'host', so the Log Explorer "Host"
-// dropdown (built from the 'host' label) never lists any gateway.
+// Attach a 'host' label to Unifi syslog.
+// Without it, syslog streams carry only {job, site} — every device at a site
+// collapses into one unattributed stream, and the Log Explorer "Host" dropdown
+// (built from the 'host' label) never lists any gateway.
 // Cardinality is bounded: a handful of GW/AP/switch hostnames per site.
 loki.relabel "unifi_syslog" {
   forward_to = []
@@ -83,21 +83,38 @@ loki.relabel "unifi_syslog" {
     source_labels = ["__syslog_message_hostname"]
     target_label  = "host"
   }
+}
 
-  // Fallback for devices that omit the hostname field: use the sender IP so
-  // the stream is still attributable instead of silently losing the label.
-  rule {
-    source_labels = ["host", "__syslog_connection_ip_address"]
-    regex         = "^;(.+)$"
-    target_label  = "host"
-    replacement   = "$1"
-  }
+// Unifi's RFC3164 output is inconsistent: measured against live traffic, the
+// syslog parser populates __syslog_message_hostname for only ~1/3 of lines.
+// Labelling just those would be worse than labelling none — the dropdown would
+// look functional while silently hiding two thirds of a device's logs.
+//
+// Every message body does begin with the device name, so recover it there for
+// the remainder. stage.match limits this to lines the parser could not resolve,
+// because on lines it DID resolve the body may start with the process tag
+// instead ("hostapd[10291]: ...").
+//
+// Two guards keep a WRONG host out, which would be worse than a missing one:
+//   - the next token must look like a syslog tag ("systemd[1]:", "kernel:") or
+//     a bracketed prefix ("[PREROUTING-DNAT-5]");
+//   - the host token must contain a dot or hyphen, so prose like
+//     "mem avail: 1813 of 3946 MiB" cannot yield host=mem.
+// A device named without a dot or hyphen therefore falls back to no label
+// rather than a wrong one; the parser rule above still covers what it can.
+loki.process "unifi_syslog" {
+  forward_to = [loki.write.siem.receiver]
 
-  // Process name (ubios-udapi-server, hostapd, openvpn, kernel, …) — lets
-  // alerts and dashboards target VPN daemons without regex-scanning the body.
-  rule {
-    source_labels = ["__syslog_message_app_name"]
-    target_label  = "appname"
+  stage.match {
+    selector = "{host=\"\"}"
+
+    stage.regex {
+      expression = "^(?P<host>[A-Za-z0-9][A-Za-z0-9._-]*[.-][A-Za-z0-9._-]*) (?:[A-Za-z0-9._/-]+[\\[:]|\\[)"
+    }
+
+    stage.labels {
+      values = { host = "" }
+    }
   }
 }
 
