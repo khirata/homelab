@@ -1,0 +1,61 @@
+---
+# The Wazuh agent package itself is still installed out of band on the nodes;
+# this role only manages the systemd surface around it. It is therefore a no-op
+# on any host where the unit is absent, rather than a failure.
+- name: Check whether the wazuh-agent unit is installed
+  ansible.builtin.stat:
+    path: /usr/lib/systemd/system/wazuh-agent.service
+  register: wazuh_agent_unit
+
+- name: Configure wazuh-agent systemd drop-ins
+  when: wazuh_agent_unit.stat.exists
+  block:
+    - name: Create wazuh-agent systemd drop-in directory
+      ansible.builtin.file:
+        path: /etc/systemd/system/wazuh-agent.service.d
+        state: directory
+        mode: "0755"
+
+    # Failure mode this guards against: the packaged unit is Type=forking with
+    # TimeoutSec=45, and `wazuh-control start` brings the daemons up one at a
+    # time. When the node is slow enough that the sequence overruns 45s, systemd
+    # terminates the unit mid-start. wazuh-agentd is started early and keeps
+    # running orphaned, so the manager still receives keepalives and reports the
+    # agent Active — while wazuh-logcollector never launched and every
+    # log-based security event is silently dropped.
+    - name: Raise wazuh-agent start timeout
+      ansible.builtin.copy:
+        content: |
+          [Service]
+          # Managed by Ansible (roles/wazuh_agent).
+          # The packaged default of 45s is too short on slower nodes: systemd
+          # kills the start sequence part-way through, leaving wazuh-agentd
+          # sending keepalives while wazuh-logcollector is dead. The agent then
+          # looks healthy to the manager but collects no log-based events.
+          TimeoutStartSec={{ wazuh_agent_start_timeout }}
+        dest: /etc/systemd/system/wazuh-agent.service.d/timeout.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd daemon
+
+    - name: Add OnFailure drop-in for wazuh-agent
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          OnFailure=notify-ntfy@%n.service
+        dest: /etc/systemd/system/wazuh-agent.service.d/ntfy.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd daemon
+
+    # daemon_reload here rather than relying on the handler: the drop-ins must
+    # be live before the unit is started, and handlers only run at end of play.
+    - name: Enable and start wazuh-agent
+      ansible.builtin.systemd:
+        name: wazuh-agent
+        enabled: true
+        state: started
+        daemon_reload: true
+      ignore_errors: "{{ ansible_check_mode }}"

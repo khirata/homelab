@@ -20,6 +20,8 @@
   roles:
     - ntfy_client
     - alloy
+    - role: wazuh_agent
+      tags: [wazuh_agent]
 
 - name: Ntfy notification servers
   hosts: ntfy_servers
