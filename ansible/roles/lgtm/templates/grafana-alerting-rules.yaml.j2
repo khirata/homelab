@@ -294,10 +294,11 @@ groups:
         annotations:
           summary: "Tunnel {{ '{{' }} $labels.iface {{ '}}' }} at {{ '{{' }} $labels.site {{ '}}' }} is released from WAN and has not recovered"
           description: >-
-            A WireGuard tunnel was released as a WAN interface and no matching
-            "controls" event followed. Devices policy-routed over this tunnel are
-            now silently falling back to the local WAN — they still have internet,
-            but via the wrong site. Re-resolve the peer endpoint by toggling the
+            Over the last 7 days this tunnel was released as a WAN interface with
+            no matching "controls" event following it, so it is still detached.
+            Devices policy-routed over it are silently falling back to the local
+            WAN — still online, but egressing from the wrong site, which is why
+            nothing looks "down". Re-resolve the peer endpoint by toggling the
             tunnel on the gateway.
 
       # Peer churn. Normal is 3–10 connect events/day per site; 10 connect or
