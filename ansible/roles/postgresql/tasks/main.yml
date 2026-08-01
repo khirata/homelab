@@ -160,6 +160,29 @@
     group: root
     mode: "0644"
 
+# ── Log heartbeat ─────────────────────────────────────────────────────────────
+# An idle instance writes no WAL, skips checkpoints, and can log nothing for
+# days, so the postgresql-log-silence Grafana alert cannot rely on organic
+# logs. This timer emits one LOG line every pg_log_heartbeat_interval_min
+# minutes, turning the alert into an end-to-end check of the whole pipeline:
+# postgres → log file → Alloy → Loki.
+
+- name: Template pg-log-heartbeat systemd service
+  ansible.builtin.template:
+    src: pg-log-heartbeat.service.j2
+    dest: /etc/systemd/system/pg-log-heartbeat.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Template pg-log-heartbeat systemd timer
+  ansible.builtin.template:
+    src: pg-log-heartbeat.timer.j2
+    dest: /etc/systemd/system/pg-log-heartbeat.timer
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: Reload systemd daemon
   ansible.builtin.systemd:
     daemon_reload: true
@@ -168,6 +191,13 @@
 - name: Enable and start pg-backup timer
   ansible.builtin.systemd:
     name: pg-backup.timer
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Enable and start pg-log-heartbeat timer
+  ansible.builtin.systemd:
+    name: pg-log-heartbeat.timer
     enabled: true
     state: started
   ignore_errors: "{{ ansible_check_mode }}"
