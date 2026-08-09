@@ -51,6 +51,10 @@ smtp_host: "smtp.example.com:587"
 smtp_from: "noreply@example.com"
 smtp_starttls_policy: "MandatoryStartTLS"
 
+# --- Alerting (contact points / notification policy) ---
+alert_email: "alerts@example.com"
+discord_webhook_url: "https://discord.com/api/webhooks/000000/ci-test-token"
+
 # --- Vault variables (CI dummies — not real credentials) ---
 vault_grafana_admin_password: "ci-test-password"
 vault_wazuh_api_password: "Ci-Test-1!"

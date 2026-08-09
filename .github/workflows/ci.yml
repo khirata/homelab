@@ -193,6 +193,9 @@ jobs:
             /tmp/rendered/prometheus.yml \
             /tmp/rendered/loki-config.yaml \
             /tmp/rendered/grafana-datasources.yaml \
+            /tmp/rendered/grafana-alerting-rules.yaml \
+            /tmp/rendered/grafana-alerting-contact-points.yaml \
+            /tmp/rendered/grafana-alerting-notification-policy.yaml \
             /tmp/rendered/docker-compose.lgtm.yml \
             /tmp/rendered/docker-compose.infisical.yml
 
