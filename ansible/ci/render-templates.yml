@@ -62,6 +62,29 @@
         dest: "{{ render_dir }}/grafana-dashboard-provider.yaml"
         mode: "0644"
 
+    # The alerting templates escape Go template syntax as {{ '{{' }} $labels.x
+    # so Grafana receives it verbatim. That is easy to break silently — a
+    # mangled annotation still renders as valid YAML and only shows up in the
+    # text of a fired alert. Render them so CI at least catches Jinja errors
+    # and malformed YAML.
+    - name: Render grafana-alerting-rules.yaml
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/grafana-alerting-rules.yaml.j2"
+        dest: "{{ render_dir }}/grafana-alerting-rules.yaml"
+        mode: "0644"
+
+    - name: Render grafana-alerting-contact-points.yaml
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/grafana-alerting-contact-points.yaml.j2"
+        dest: "{{ render_dir }}/grafana-alerting-contact-points.yaml"
+        mode: "0644"
+
+    - name: Render grafana-alerting-notification-policy.yaml
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/grafana-alerting-notification-policy.yaml.j2"
+        dest: "{{ render_dir }}/grafana-alerting-notification-policy.yaml"
+        mode: "0644"
+
     - name: Render unpoller.conf
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../roles/lgtm/templates/unpoller.conf.j2"

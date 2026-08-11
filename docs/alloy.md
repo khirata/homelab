@@ -1,9 +1,34 @@
 # Grafana Alloy
 
-Alloy runs in two modes:
+Alloy runs in three modes, all managed by **this repo** (`roles/alloy`, selected by `alloy_mode`):
 
-- **Server mode** (this repo) — receives Unifi syslog (UDP 514), ships to Loki; exposes self-metrics on port 12345. See [unifi.md](unifi.md) for Unifi-specific setup.
-- **Node mode** (managed via [dotconfig](https://github.com/khirata/dotconfig)) — ships journal logs + node metrics from each monitored host
+- **Server mode** (`siem_server`) — receives Unifi syslog (UDP 514), ships to Loki; exposes self-metrics on port 12345. See [unifi.md](unifi.md) for Unifi-specific setup.
+- **Node mode** (`nodes`, `postgresql_server`, `redis_server`) — ships journal logs + node metrics to the SIEM server
+- **Minimal mode** — journal logs only, for RPi Zero 2W class hosts with too little RAM for node_exporter
+
+```bash
+make deploy-nodes    # re-apply Alloy + agents to the monitored nodes only
+```
+
+### Config ownership
+
+`/etc/alloy/config.alloy` is owned by this repo alone. The
+[dotconfig](https://github.com/khirata/dotconfig) repo used to write it too, for the hosts it
+bootstraps, and the two copies drifted — dotconfig kept the SIEM address laf3 had before it was
+rebuilt on an RPi5, so a dotconfig run on laf2 pointed Alloy at a dead host and every metric and
+log line from it was dropped for a week. Nothing alerted: the unit stayed `active` and the failure
+was a warn-level retry loop.
+
+dotconfig no longer applies its `alloy` role to laf1/laf2. It still owns `rpi_metrics` on every
+RPi — that role writes the `rpi_*` textfile metrics this repo's dashboards read but does not
+itself manage. **If Alloy config appears on a node that this repo did not write, check dotconfig's
+`site.yml` before assuming drift.**
+
+To confirm a node is shipping to the right place:
+
+```bash
+sudo grep 'url = ' /etc/alloy/config.alloy
+```
 
 ---
 

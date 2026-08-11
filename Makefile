@@ -1,4 +1,4 @@
-.PHONY: all clean deploy check install-deps backup test deploy-ntfy-client deploy-siem deploy-wazuh deploy-dashboards deploy-infisical redeploy-infisical env _pre-deploy-backup _infisical-check
+.PHONY: all clean deploy check install-deps backup test deploy-ntfy-client deploy-nodes deploy-siem deploy-wazuh deploy-dashboards deploy-infisical redeploy-infisical env _pre-deploy-backup _infisical-check
 
 -include .env
 export
@@ -93,6 +93,11 @@ deploy: _infisical-check _pre-deploy-backup
 ## Deploy only the SIEM server (runs backup first)
 deploy-siem: _infisical-check _pre-deploy-backup
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server
+
+## Deploy only the monitored nodes (Alloy, ntfy client, Wazuh agent) — no backup pre-step
+## Use after a node's Alloy config drifts; the SIEM server stack is untouched.
+deploy-nodes: _infisical-check
+	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit nodes
 
 ## Deploy only the Wazuh stack containers (indexer, dashboard, nginx proxy) — no backup pre-step
 deploy-wazuh: _infisical-check

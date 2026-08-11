@@ -11,7 +11,22 @@ groups:
     rules:
 
       # Fires when a node stops sending Prometheus metrics for >5 min.
-      # Covers: Alloy fully crashed, node unreachable, network partition.
+      # Covers: Alloy fully crashed, node unreachable, network partition, and
+      # Alloy running fine but remote-writing to an address that no longer
+      # answers (how laf2 went dark on 2026-08-02).
+      #
+      # The "expected hosts" set comes from a 7d lookback, not 1h. With 1h the
+      # rule healed itself: once a host had been silent for over an hour it
+      # dropped out of the left-hand side too, `unless` yielded nothing, and
+      # noDataState=OK resolved the alert. A dead node alerted for ~55 min and
+      # was then silent forever — laf2 sat unnoticed for a week that way.
+      # 7d is within the 30d TSDB retention, so a departed host keeps alerting
+      # for a week. Decommissioning a node now means silencing this for 7d, or
+      # deleting its series; that is the intended trade.
+      #
+      # Keyed on node_uname_info (one series per host) rather than
+      # node_cpu_seconds_total (cpu x mode per host) — same signal, and the 7d
+      # range stays cheap to evaluate every 2m.
       - uid: node-metrics-silence
         title: "Node metrics silence"
         condition: C
@@ -22,7 +37,7 @@ groups:
               from: 600
               to: 0
             model:
-              expr: 'count by (instance) (last_over_time(node_cpu_seconds_total{job="node"}[1h])) unless count by (instance) (last_over_time(node_cpu_seconds_total{job="node"}[5m]))'
+              expr: 'count by (instance) (last_over_time(node_uname_info{job="node"}[7d])) unless count by (instance) (last_over_time(node_uname_info{job="node"}[5m]))'
               instant: true
           - refId: B
             datasourceUid: "__expr__"
