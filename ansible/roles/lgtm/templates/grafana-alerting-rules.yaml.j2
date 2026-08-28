@@ -222,3 +222,20 @@ groups:
         annotations:
           summary: "No UniFi syslog from site {{ '{{' }} $labels.site {{ '}}' }} for 5+ min"
           description: "UniFi GW may be unreachable or SIEM syslog listener is broken."
+
+# Grafana's alerting provisioning is upsert-only: dropping a rule from `groups`
+# above leaves the previously provisioned rule live in Grafana's database, so it
+# keeps evaluating and paging. Withdrawing a rule therefore takes two steps —
+# remove it from `groups` AND name its uid here.
+#
+# Keep these entries. They are idempotent once the rules are gone, and removing
+# them would not resurrect anything, but leaving them documents what was
+# withdrawn. If any of these uids is ever reinstated in `groups`, delete its
+# entry here first or provisioning will remove the rule again.
+deleteRules:
+  - orgId: 1
+    uid: vpn-wan-tunnel-released
+  - orgId: 1
+    uid: vpn-peer-lost
+  - orgId: 1
+    uid: vpn-peer-flapping
