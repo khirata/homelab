@@ -129,27 +129,45 @@ syslog volume was completely normal throughout.
 > `wireguard-interface-controller: Creating|Deleting`, and
 > `has to be reconfigured because … was resolved to`, are emitted by the manual
 > restart that *fixes* the problem. An alert keyed on them fires only after the
-> outage is already over. The `vpn-watchdog` rules deliberately avoid them.
+> outage is already over.
 
 **Dashboard:** Grafana → Dashboards → **VPN Health** (`vpn-health`).
 
-**Alerts** (`vpn-watchdog` group in `grafana-alerting-rules.yaml.j2`):
+### Alerting: withdrawn
 
-| Alert | Fires when | Verified against 07-27 |
-|---|---|---|
-| `vpn-wan-tunnel-released` | `releases` minus `controls` > 0 per tunnel over 7d | fires 10 min after the real failure, stays firing for the full 47h, clears on the fix |
-| `vpn-peer-lost` | peer disconnects exceed reconnects on `wgclt*`/`wgsts*` over 7d | same |
-| `vpn-peer-flapping` | >10 connect/disconnect events in 15 min | quiet (this incident was not a flap) |
+**There is currently no alerting on VPN health.** The `vpn-watchdog` group was
+removed on 2026-08-11. Nothing pages when an inter-site tunnel drops — the
+dashboard above is the only signal, and it has to be looked at deliberately.
 
-Both state rules use `A - (B or (A * 0))`. The `or (A * 0)` fills a zero for
-tunnels released but never restored — without it the subtraction is an inner
-join that silently drops exactly the stuck tunnel you want to catch.
+The group held three rules, keyed on wanFailover attachment state
+(`releases` minus `controls`) and on peer session balance, both over a 7d window:
+`vpn-wan-tunnel-released`, `vpn-peer-lost`, `vpn-peer-flapping`.
 
-The window is **7d, not 24h**: because these are count differences, a properly
-paired release nets to zero regardless of window length, but too short a window
-lets the release age out mid-outage and the alert goes quiet while the tunnel is
-still broken. Measured: 24h stopped firing after 07-28 21:44 with `wgclt1` still
-down; 7d kept firing until it was actually fixed.
+They were not wrong. Every firing corresponded to a real tunnel drop, and the two
+state rules independently corroborated each other within ~4 minutes on each
+occasion. They were withdrawn because the *signal was not actionable*: the link
+drops and recovers on its own, so the pages arrived for events that needed no
+human response, and the noise cost exceeded the value.
+
+That distinction matters for whatever replaces them. The detection worked; what
+is missing is a way to tell a self-healing blip from an outage that will persist.
+Candidates:
+
+- **Wait before firing.** The 2026-07-27 outage lasted 47h; the 08-06 one
+  self-healed in ~12h. A `for:` of several hours would have caught the first and
+  ignored the second. Simple, and it fits the existing rules unchanged.
+- **Probe the path instead of the logs.** A blackbox probe egressing through the
+  tunnel answers the question that actually matters — is traffic leaving from the
+  right site — and would also catch a tunnel that stays attached but stops
+  passing traffic. Needs a probe target at the far end.
+- **Alert on impact, not on state.** Detect that a policy-routed device is
+  egressing from the wrong WAN, which is the condition anyone actually cares
+  about.
+
+The removed rules are recoverable from git history if the `for:`-duration route
+is taken — see the `vpn-watchdog` group prior to its removal for the working
+LogQL, including the `A - (B or (A * 0))` form needed to stop the subtraction
+inner-joining away the very tunnel it is meant to catch.
 
 **Useful queries:**
 
