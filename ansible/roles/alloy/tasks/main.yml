@@ -36,6 +36,22 @@
     state: present
     update_cache: true
 
+# A name outside [a-z0-9_] is not a valid Alloy component label, and a shared
+# port would bind two listeners to one socket — both only surface as Alloy
+# failing to start after the config is already in place.
+- name: Validate loki_push_clients
+  ansible.builtin.assert:
+    that:
+      - loki_push_clients | map(attribute='name') | select('match', '^[a-z0-9_]+$') | list | length == loki_push_clients | length
+      - loki_push_clients | map(attribute='name') | unique | list | length == loki_push_clients | length
+      - loki_push_clients | map(attribute='port') | unique | list | length == loki_push_clients | length
+      - loki_push_clients | selectattr('job', 'defined') | selectattr('site', 'defined') | list | length == loki_push_clients | length
+    fail_msg: "loki_push_clients: each entry needs name ([a-z0-9_]), port, job, site; names and ports must be unique"
+    quiet: true
+  when:
+    - alloy_mode == 'server'
+    - loki_push_clients | default([]) | length > 0
+
 - name: Template Alloy config (server mode)
   ansible.builtin.template:
     src: alloy-server.alloy.j2

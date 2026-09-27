@@ -24,7 +24,6 @@ alloy_ui_port: 12345
 unifi_syslog_port_laf: 514
 unifi_syslog_port_sak: 515
 unpoller_port: 9130
-phone_push_port: 3500
 wazuh_agent_port: 1514
 wazuh_enrollment_port: 1515
 wazuh_api_port: 55000
@@ -40,6 +39,9 @@ redis_dashboard_id: 763
 redis_dashboard_revision: 1
 
 # --- Alloy ---
+loki_push_clients:
+  - { name: ci_one, port: 3501, job: ci-job-one, site: ci-site }
+  - { name: ci_two, port: 3502, job: ci-job-two, site: ci-site }
 alloy_mode: server
 alloy_pg_log_dir: /var/log/postgresql
 

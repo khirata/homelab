@@ -195,22 +195,22 @@ Wazuh REST API  →  Grafana (API plugin)
 
 ---
 
-### 6. Phone Telemetry (off-site → Loki)
+### 6. Loki Push Clients (off-site → Loki)
 
 ```
-Phone (tethering while travelling)
+Off-site client (e.g. the phone tethering while travelling)
     │  Loki push JSON, headers CF-Access-Client-Id / CF-Access-Client-Secret
     ▼  HTTPS
-phone-push.<domain>  (Cloudflare Access service token → Tunnel, push paths only)
+push-<name>.<domain>  (that client's own Access service token → Tunnel, push paths only)
     │
     ▼  cloudflared on siem-host
-127.0.0.1:3500  (Alloy loki.source.api — labelkeep job|site, + source="phone-push")
+127.0.0.1:<port>  (Alloy loki.source.api per client; server sets job/site/push_client, source="cf-push")
     │
     ▼  HTTP POST  TCP 3100  (localhost)
 Loki container
 ```
 
-Details and request format: [alloy.md](alloy.md#phone-telemetry-loki-push-api).
+Details, request format and client lifecycle: [alloy.md](alloy.md#loki-push-clients-via-cloudflare-tunnel).
 
 ---
 
@@ -226,7 +226,7 @@ Details and request format: [alloy.md](alloy.md#phone-telemetry-loki-push-api).
 | Wazuh REST API | 55000 | HTTPS | localhost only | — |
 | Alloy self-metrics | 12345 | HTTP | local only | — |
 | Grafana UI | 3000 | HTTP | clients → siem-host | Grafana |
-| Phone telemetry | 3500 | HTTP | localhost only (via cloudflared) | Alloy (server mode) |
+| Loki push clients | 3501+ (one per client) | HTTP | localhost only (via cloudflared) | Alloy (server mode) |
 
 ---
 
@@ -242,7 +242,7 @@ inbound ports are opened.
 | `grafana.<domain>` | `http://localhost:3000` | Grafana |
 | `infisical.<domain>` | `http://localhost:8080` | Infisical **web UI only** — the CLI uses the LAN address, see [infisical.md](infisical.md#infisical_api_url-must-be-the-lan-address) |
 | `wazuh.<domain>` | `http://localhost:5600` | nginx CF proxy → dashboard (see [wazuh.md](wazuh.md)) |
-| `phone-push.<domain>` | `http://localhost:3500` | Loki push paths only; Access service token, no SSO (see [alloy.md](alloy.md#phone-telemetry-loki-push-api)) |
+| `push-<name>.<domain>` | `http://localhost:<port>` | One per Loki push client; push paths only; that client's service token, no SSO (see [alloy.md](alloy.md#loki-push-clients-via-cloudflare-tunnel)) |
 
 **This is not deployed by this repo.** Tunnels, DNS records, Access policies and
 the `cloudflared` service are managed by
