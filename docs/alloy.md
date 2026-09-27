@@ -2,7 +2,7 @@
 
 Alloy runs in three modes, all managed by **this repo** (`roles/alloy`, selected by `alloy_mode`):
 
-- **Server mode** (`siem_server`) — receives Unifi syslog (UDP 514), ships to Loki; exposes self-metrics on port 12345. See [unifi.md](unifi.md) for Unifi-specific setup.
+- **Server mode** (`siem_server`) — receives Unifi syslog (UDP 514), ships to Loki; receives phone telemetry over the Loki push API (see [Phone telemetry](#phone-telemetry-loki-push-api)); exposes self-metrics on port 12345. See [unifi.md](unifi.md) for Unifi-specific setup.
 - **Node mode** (`nodes`, `postgresql_server`, `redis_server`) — ships journal logs + node metrics to the SIEM server
 - **Minimal mode** — journal logs only, for RPi Zero 2W class hosts with too little RAM for node_exporter
 
@@ -49,6 +49,62 @@ sudo journalctl -u alloy -f
 | Config | `/etc/alloy/config.alloy` |
 | Self-metrics | `http://<siem-host>:12345/metrics` |
 | UI (pipeline graph) | `http://<siem-host>:12345` |
+
+---
+
+## Phone telemetry (Loki push API)
+
+The phone that tethers while travelling reports its own state (battery, temperature,
+charging) straight to Loki, so a dead or overheating phone is distinguishable from a dead
+home network.
+
+```
+Phone ──HTTPS──► phone-push.<domain>  (Cloudflare Access: service token required)
+                   │  tunnel ingress passes only /loki/api/v1/(push|raw); everything else 404
+                   ▼
+cloudflared on siem-host ──► 127.0.0.1:3500  (Alloy loki.source.api "phone")
+                   │  labelkeep job|site, add source="phone-push", keep device timestamps
+                   ▼
+                 Loki
+```
+
+The listener is bound to `127.0.0.1`, so the tunnel is the only way in — nothing on the LAN
+can push to it either. Tunnel, DNS, Access application and the service token are managed in
+[cloudflared-deployment](https://github.com/khirata/cloudflared-deployment) (`phone-push-token`
+policy; credentials from `terraform output phone_push_token_id` /
+`terraform output -raw phone_push_token_secret`).
+
+**Request**
+
+```
+POST https://phone-push.<domain>/loki/api/v1/push
+Content-Type: application/json
+CF-Access-Client-Id: <phone_push_token_id>
+CF-Access-Client-Secret: <phone_push_token_secret>
+
+{"streams":[{"stream":{"job":"pixel6a","site":"lafayette"},
+  "values":[["<unix-seconds>000000000","battery=87 temp=31.2 power=charging"]]}]}
+```
+
+A `204` means Loki accepted it. A `302`/`403` comes from Cloudflare Access (missing or wrong
+headers) and never reached Alloy.
+
+**Labels are server-controlled.** Only `job` and `site` survive from the client; any other
+label is dropped, and every stream gets `source="phone-push"`. Query with
+`{source="phone-push"}` — a client sending `job="journal"` still cannot blend into the real
+journal streams.
+
+**Timestamps are the phone's** (`use_incoming_timestamp`), so readings queued while offline
+land when they were taken. Loki rejects entries older than its `reject_old_samples_max_age`
+(default one week).
+
+Smoke test from the siem host, bypassing the tunnel:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -H 'Content-Type: application/json' \
+  http://127.0.0.1:3500/loki/api/v1/push \
+  -d "{\"streams\":[{\"stream\":{\"job\":\"test\",\"site\":\"lafayette\"},\"values\":[[\"$(date +%s)000000000\",\"battery=0 temp=0 power=test\"]]}]}"
+```
 
 ---
 

@@ -230,6 +230,45 @@ loki.relabel "docker_meta" {
   }
 }
 
+// ── Phone telemetry (Loki push API) → Loki ──────────────────────────────
+// Off-site devices (e.g. the phone tethering while travelling) push here via
+// Cloudflare Tunnel: phone-push.<domain> → cloudflared on this host → :{{ phone_push_port }}.
+// Bound to 127.0.0.1 so the only way in is through the tunnel, where a
+// Cloudflare Access service token is required and ingress only passes
+// /loki/api/v1/push and /loki/api/v1/raw.
+//
+// Expected body (standard Loki push JSON):
+//   {"streams":[{"stream":{"job":"pixel6a","site":"lafayette"},
+//     "values":[["<unix-ns>","battery=87 temp=31.2 power=charging"]]}]}
+loki.source.api "phone" {
+  http {
+    listen_address = "127.0.0.1"
+    listen_port    = {{ phone_push_port }}
+  }
+  // Keep the device's own timestamps so readings batched while offline land
+  // at the time they were taken, not when they were delivered.
+  use_incoming_timestamp = true
+  relabel_rules          = loki.relabel.phone.rules
+  forward_to             = [loki.write.siem.receiver]
+}
+
+// The endpoint is internet-facing, so the client does not get to choose its
+// label set: only job and site survive (bounded cardinality), and every stream
+// is stamped source="phone-push" so it can never pass for an internal job.
+loki.relabel "phone" {
+  forward_to = []
+
+  rule {
+    action = "labelkeep"
+    regex  = "job|site"
+  }
+
+  rule {
+    target_label = "source"
+    replacement  = "phone-push"
+  }
+}
+
 // ── Loki write → local Loki ─────────────────────────────────────────────
 loki.write "siem" {
   endpoint {
