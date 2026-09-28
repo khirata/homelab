@@ -230,6 +230,60 @@ loki.relabel "docker_meta" {
   }
 }
 
+// ── Loki push clients (via Cloudflare Tunnel) → Loki ───────────────────
+// One listener per off-site client (loki_push_clients in group_vars). Each is
+// bound to 127.0.0.1, so the only way in is that client's own tunnel hostname,
+// push-<name>.<domain>, which requires the client's own Access service token and
+// only passes /loki/api/v1/push and /loki/api/v1/raw (cloudflared-deployment).
+//
+// Because each port belongs to exactly one client, the server owns the labels:
+// everything the client sent as stream labels is dropped and job/site/
+// push_client come from group_vars. A leaked token can therefore only write
+// under that one client's labels.
+{% for c in loki_push_clients | default([]) %}
+loki.source.api "push_{{ c.name }}" {
+  http {
+    listen_address = "127.0.0.1"
+    listen_port    = {{ c.port }}
+  }
+  // Keep the client's timestamps so entries queued while offline land at the
+  // time they were taken, not when they were delivered.
+  use_incoming_timestamp = true
+  relabel_rules          = loki.relabel.push_{{ c.name }}.rules
+  forward_to             = [loki.write.siem.receiver]
+}
+
+loki.relabel "push_{{ c.name }}" {
+  forward_to = []
+
+  // Drop every client-supplied label (internal __ labels are left alone).
+  rule {
+    action = "labelkeep"
+    regex  = "__.+"
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "{{ c.job }}"
+  }
+
+  rule {
+    target_label = "site"
+    replacement  = "{{ c.site }}"
+  }
+
+  rule {
+    target_label = "push_client"
+    replacement  = "{{ c.name }}"
+  }
+
+  rule {
+    target_label = "source"
+    replacement  = "cf-push"
+  }
+}
+
+{% endfor %}
 // ── Loki write → local Loki ─────────────────────────────────────────────
 loki.write "siem" {
   endpoint {

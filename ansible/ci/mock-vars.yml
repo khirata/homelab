@@ -39,6 +39,9 @@ redis_dashboard_id: 763
 redis_dashboard_revision: 1
 
 # --- Alloy ---
+loki_push_clients:
+  - { name: ci_one, port: 3501, job: ci-job-one, site: ci-site }
+  - { name: ci_two, port: 3502, job: ci-job-two, site: ci-site }
 alloy_mode: server
 alloy_pg_log_dir: /var/log/postgresql
 

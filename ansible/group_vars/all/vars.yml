@@ -114,6 +114,22 @@ ntfy_token: "{{ lookup('env', 'NTFY_TOKEN') }}"
 ntfy_cloud_topic: "{{ lookup('env', 'NTFY_CLOUD_TOPIC') }}"
 
 # =============================================================================
+# Loki push clients (safe to commit)
+# =============================================================================
+# One entry per off-site client pushing logs through its own Cloudflare Tunnel
+# hostname, push-<name>.<domain>. Each gets a dedicated Alloy loki.source.api
+# on 127.0.0.1:<port>; job and site are set here and anything the client sends
+# as stream labels is discarded.
+# The port MUST match the ingress rule for push-<name> in cloudflared-deployment
+# (config/laf3.local.yml), which also mints that hostname's service token.
+# name: [a-z0-9_] only — it becomes an Alloy component label.
+loki_push_clients:
+  - name: visible           # Pixel 6a tethering while travelling (Visible line)
+    port: 3501
+    job: pixel6a
+    site: lafayette
+
+# =============================================================================
 # PostgreSQL / Redis config (safe to commit)
 # =============================================================================
 infisical_db_name: infisical
