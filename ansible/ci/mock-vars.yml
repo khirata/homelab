@@ -48,6 +48,7 @@ alloy_pg_log_dir: /var/log/postgresql
 # --- Grafana external access ---
 grafana_external_url: ""
 cloudflare_team_name: ""
+grafana_admin_emails: "admin@example.com, second@example.com"
 
 # --- SMTP ---
 smtp_host: "smtp.example.com:587"
