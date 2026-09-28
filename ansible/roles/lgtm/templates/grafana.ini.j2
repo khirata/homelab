@@ -48,6 +48,14 @@ header_name = Cf-Access-Jwt-Assertion
 email_claim = email
 jwk_set_url = https://{{ cloudflare_team_name }}.cloudflareaccess.com/cdn-cgi/access/certs
 auto_sign_up = true
+{% set admin_emails = grafana_admin_emails | default('') | split(',') | map('trim') | reject('equalto', '') | list %}
+{% if admin_emails %}
+# Role comes from the Cloudflare-verified email on every login, so it cannot
+# drift from GRAFANA_ADMIN_EMAILS. Without this, auto_sign_up creates everyone
+# as Viewer, and Viewers cannot open Explore. With the login form disabled,
+# nobody can reach the local admin account from the web to promote them.
+role_attribute_path = contains(`{{ admin_emails | to_json }}`, email) && 'Admin' || 'Viewer'
+{% endif %}
 
 # Disable the login form when Cloudflare Access is the sole auth layer.
 [auth]

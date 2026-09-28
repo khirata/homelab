@@ -50,6 +50,17 @@
         dest: "{{ render_dir }}/grafana.ini"
         mode: "0644"
 
+    # mock-vars arrives as extra vars, which outrank task vars; template_vars
+    # is the only way to flip cloudflare_team_name for this one render.
+    - name: Render grafana.ini (Cloudflare JWT auth with admin emails)
+      ansible.builtin.copy:
+        content: >-
+          {{ lookup('ansible.builtin.template',
+                    playbook_dir ~ '/../roles/lgtm/templates/grafana.ini.j2',
+                    template_vars={'cloudflare_team_name': 'ci-team'}) }}
+        dest: "{{ render_dir }}/grafana-jwt.ini"
+        mode: "0644"
+
     - name: Render grafana-datasources.yaml
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../roles/lgtm/templates/grafana-datasources.yaml.j2"

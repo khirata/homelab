@@ -99,6 +99,8 @@ redis_dashboard_revision: 1
 grafana_external_url: "{{ lookup('env', 'GRAFANA_EXTERNAL_URL') | default('', true) }}"
 # Cloudflare Access team name (<team>.cloudflareaccess.com). Enables JWT auth when set.
 cloudflare_team_name: "{{ lookup('env', 'CLOUDFLARE_TEAM_NAME') | default('', true) }}"
+# Comma-separated emails granted Grafana Admin via the Cloudflare JWT. Empty → all JWT users are Viewers.
+grafana_admin_emails: "{{ lookup('env', 'GRAFANA_ADMIN_EMAILS') | default('', true) }}"
 
 # =============================================================================
 # Alerting (optional — omit env var to disable that channel)
