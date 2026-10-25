@@ -204,7 +204,7 @@
       - "{{ siem_config_dir }}/unpoller"
       - "{{ siem_config_dir }}/prometheus-targets/unpoller"
     patterns: ["*.conf", "*.yml"]
-  register: unpoller_site_files
+  register: lgtm_unpoller_site_files
 
 # Removing an entry from unpoller_sites removes its files here and its
 # container after the stack is up. The single-process unpoller.conf predates
@@ -214,7 +214,7 @@
     path: "{{ item }}"
     state: absent
   loop: >-
-    {{ unpoller_site_files.files | map(attribute='path')
+    {{ lgtm_unpoller_site_files.files | map(attribute='path')
        | reject('search', '/(' ~ (unpoller_site_names | join('|')) ~ ')[.](conf|yml)$')
        | list + [siem_config_dir ~ '/unpoller.conf'] }}
   notify: Restart LGTM stack
@@ -281,8 +281,8 @@
 # file's containers count as orphans here and would be deleted.
 - name: List Unpoller containers
   ansible.builtin.command:
-    cmd: !unsafe "docker ps -a --filter name=unpoller --format '{{.Names}}'"
-  register: unpoller_containers
+    cmd: docker ps -a --filter name=unpoller --format json
+  register: lgtm_unpoller_containers
   changed_when: false
   check_mode: false  # read-only; lets --check report what would be removed
 
@@ -290,7 +290,7 @@
   ansible.builtin.command:
     cmd: docker rm -f {{ item }}
   loop: >-
-    {{ unpoller_containers.stdout_lines
+    {{ lgtm_unpoller_containers.stdout_lines | map('from_json') | map(attribute='Names')
        | select('match', '^unpoller(-[a-z0-9]+)?$')
        | reject('in', unpoller_site_names | map('regex_replace', '^', 'unpoller-') | list)
        | list }}
