@@ -142,6 +142,11 @@ they go to ntfy as well as email/Discord, one push per site:
 | `unpoller-scrape-down` | `up{job="unpoller"} == 0` for a site, or no unpoller target exists at all | 5m |
 | `unpoller-data-missing` | a site has a target but no `unifi_device_uptime_seconds` for 5 min | 15m |
 
+A controller that has never accepted a login (new site with a wrong URL or
+user) never gets as far as polling: unpoller does not open `:9130` until its
+first login succeeds, so the scrape is refused and only `unpoller-scrape-down` /
+`unpoller-data-missing` fire — `unpoller-fetch-failing` needs a poll to fail.
+
 Thresholds and why they are what they are: comments in
 [`grafana-alerting-rules.yaml.j2`](../ansible/roles/lgtm/templates/grafana-alerting-rules.yaml.j2).
 
@@ -161,3 +166,28 @@ As of 2026-10-25 the SIEM host reaches Sakamoto's LAN only over Tailscale:
 
 So `unpoller-sak` depends on sak2 being up. A sak2 outage shows up as
 `unpoller-scrape-down` / `unpoller-fetch-failing` for `site="sakamoto"` only.
+
+### Lafayette subnet routers must not accept their own LAN's route
+
+laf3 and laf2 both advertise the Lafayette /24s (HA pair; laf3 is primary).
+A node that advertises a subnet **and** accepts routes installs the peer's
+advertisement of that same subnet in table 52, ahead of `main` — so it sends
+replies to its own LAN neighbours into `tailscale0`, and LAN traffic between the
+two breaks. Until 2026-10-25 laf2 had `--accept-routes` on: every laf3 → laf2
+LAN connection (docker-event-notifier → primary ntfy, Grafana → ntfy) timed out,
+and container alerts reached the phone only through the ntfy.sh fallback.
+
+laf2 now runs `--accept-routes=false`. laf3 keeps it on, since it needs
+Sakamoto's routes for `unpoller-sak`. That is safe only while laf3 is the
+*primary* router for the Lafayette /24s — a node is never sent its own
+prefixes from a standby. **Latent risk:** primaries are sticky, so if laf3's
+tailscaled restarts while laf2 is up, laf2 can take over as primary, and laf3
+then installs laf2's copy of `10.77.3.0/24` and loses its own LAN the same way.
+Unresolved; the clean fix is for laf2 to stop advertising the Lafayette /24s
+(giving up HA), since Tailscale cannot accept routes per prefix.
+
+Check from either host:
+
+```bash
+ip route get <other-host-LAN-IP>    # must say dev eth0, not dev tailscale0
+```
