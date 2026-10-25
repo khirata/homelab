@@ -22,3 +22,20 @@ contactPoints:
           url: "{{ discord_webhook_url }}"
           use_discord_username: false
 {% endif %}
+{% if ntfy_token %}
+
+  # Opt-in per rule: only alerts labelled notify=ntfy reach it (see
+  # notification-policy.yaml). ntfy's built-in "grafana" template turns the
+  # webhook JSON into a readable title and body. Primary ntfy only — Grafana
+  # cannot fail over, and adding the ntfy.sh topic too would double every push.
+  - orgId: 1
+    name: homelab-ntfy
+    receivers:
+      - uid: receiver-ntfy
+        type: webhook
+        settings:
+          url: "http://{{ ntfy_server_ip }}:{{ ntfy_port }}/{{ ntfy_topic }}?template=grafana"
+          httpMethod: POST
+          authorization_scheme: Bearer
+          authorization_credentials: "{{ ntfy_token }}"
+{% endif %}

@@ -24,7 +24,7 @@ that repo's `make deploy` is run against it.
 | Prometheus (Docker) | Metrics collection | 9090 (internal) | `$SIEM_SERVER_HOST` |
 | Wazuh Manager | SIEM / security events | 1514, 1515, 55000 | `$SIEM_SERVER_HOST` |
 | Grafana Alloy | Syslog receiver + node metrics | 12345, UDP/514 | `$SIEM_SERVER_HOST` |
-| Unpoller (Docker) | Unifi metrics exporter | 9130 (internal) | `$SIEM_SERVER_HOST` |
+| Unpoller (Docker, one per site) | Unifi metrics exporter | 9130 (internal) | `$SIEM_SERVER_HOST` |
 | Infisical (Docker) | Secret management | 8080 | `$SIEM_SERVER_HOST` |
 | PostgreSQL | Shared database (Infisical) | 5432 (localhost only) | `$POSTGRESQL_SERVER_IP` |
 | Redis | Shared cache (Infisical) | 6379 (localhost only) | `$REDIS_SERVER_IP` |
@@ -56,6 +56,7 @@ See [docs/setup.md](docs/setup.md) for full prerequisites and upgrade instructio
 | [docs/wazuh.md](docs/wazuh.md) | Wazuh Manager |
 | [docs/alloy.md](docs/alloy.md) | Grafana Alloy, RPi metrics |
 | [docs/unifi.md](docs/unifi.md) | Unifi syslog (Alloy) and metrics (Unpoller) |
+| [docs/unpoller-sites.md](docs/unpoller-sites.md) | Unpoller per-site containers: adding/removing a site, alerts |
 | [docs/infisical.md](docs/infisical.md) | Infisical first run, upgrading, secrets |
 | [docs/postgresql.md](docs/postgresql.md) | PostgreSQL operations, backup, restore |
 | [docs/redis.md](docs/redis.md) | Redis operations |

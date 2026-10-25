@@ -12,3 +12,19 @@ policies:
     group_wait: 30s
     group_interval: 5m
     repeat_interval: 4h
+{% if ntfy_token %}
+    # notify=ntfy adds ntfy on top of the default channels. A matched child
+    # route replaces the root receiver, so the second route re-adds
+    # homelab-alerts; continue lets the first match fall through to it.
+    # Grouped per site/container too, so each broken site is its own push.
+    routes:
+      - receiver: homelab-ntfy
+        object_matchers:
+          - ["notify", "=", "ntfy"]
+        group_by: [grafana_folder, alertname, site, container_name]
+        continue: true
+      - receiver: homelab-alerts
+        object_matchers:
+          - ["notify", "=", "ntfy"]
+        group_by: [grafana_folder, alertname, site, container_name]
+{% endif %}

@@ -70,12 +70,17 @@ infisical_site_url: "http://10.0.0.1:8080"
 infisical_external_url: ""
 vault_infisical_client_id_google: ""
 vault_infisical_client_secret_google: ""
-unifi_controller_url_site1: "https://10.0.1.1:443"
-vault_unifi_username_site1: "ci-unpoller"
-vault_unifi_password_site1: "ci-test-unifi-password"
-unifi_controller_url_site2: "https://10.0.11.1:443"
-vault_unifi_username_site2: "ci-unpoller"
-vault_unifi_password_site2: "ci-test-unifi-password"
+
+# --- Unpoller sites ---
+unpoller_sites:
+  - { name: one, site: ci-site-one, url: "https://10.0.1.1:443", user: ci-unpoller, pass: ci-test-unifi-password }
+  - { name: two, site: ci-site-two, url: "https://10.0.11.1:443", user: ci-unpoller, pass: ci-test-unifi-password }
+
+# --- ntfy (Grafana contact point) ---
+ntfy_server_ip: "10.0.0.2"
+ntfy_port: 2586
+ntfy_topic: "ci-topic"
+ntfy_token: "ci-test-ntfy-token"
 
 # --- PostgreSQL / Redis ---
 postgresql_version: "16"

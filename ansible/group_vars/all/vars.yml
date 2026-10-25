@@ -29,12 +29,6 @@ infisical_external_url: "{{ lookup('env', 'INFISICAL_EXTERNAL_URL') | default(''
 # Google OAuth credentials (optional) — enables Sign in with Google
 vault_infisical_client_id_google: "{{ lookup('env', 'INFISICAL_CLIENT_ID_GOOGLE') | default('', true) }}"
 vault_infisical_client_secret_google: "{{ lookup('env', 'INFISICAL_CLIENT_SECRET_GOOGLE') | default('', true) }}"
-unifi_controller_url_site1: "{{ lookup('env', 'UNIFI_CONTROLLER_URL_SITE1') }}"
-vault_unifi_username_site1: "{{ lookup('env', 'UNIFI_USERNAME_SITE1') }}"
-vault_unifi_password_site1: "{{ lookup('env', 'UNIFI_PASSWORD_SITE1') }}"
-unifi_controller_url_site2: "{{ lookup('env', 'UNIFI_CONTROLLER_URL_SITE2') }}"
-vault_unifi_username_site2: "{{ lookup('env', 'UNIFI_USERNAME_SITE2') }}"
-vault_unifi_password_site2: "{{ lookup('env', 'UNIFI_PASSWORD_SITE2') }}"
 
 # =============================================================================
 # Directory layout (safe to commit)
@@ -50,7 +44,7 @@ grafana_port: 3000
 prometheus_port: 9090
 loki_port: 3100
 alloy_ui_port: 12345
-unpoller_port: 9130
+unpoller_port: 9130          # every unpoller-<name> container; not published on the host
 unifi_syslog_port_laf: 514
 unifi_syslog_port_sak: 515
 wazuh_agent_port: 1514
@@ -111,6 +105,8 @@ discord_webhook_url: "{{ lookup('env', 'DISCORD_WEBHOOK_URL') }}"
 # ntfy — crash alerts via systemd OnFailure and Docker event notifier
 # Primary: self-hosted ntfy on laf2 (LAN); fallback: ntfy.sh free tier (cloud)
 ntfy_port: 2586
+# By IP: Grafana runs in Docker, where laf2.local (mDNS) does not resolve.
+ntfy_server_ip: "{{ hostvars[groups['ntfy_servers'][0]]['ansible_host'] }}"
 ntfy_topic: "{{ lookup('env', 'NTFY_TOPIC') | default('homelab', true) }}"
 ntfy_token: "{{ lookup('env', 'NTFY_TOKEN') }}"
 ntfy_cloud_topic: "{{ lookup('env', 'NTFY_CLOUD_TOPIC') }}"
@@ -130,6 +126,38 @@ loki_push_clients:
     port: 3501
     job: pixel6a
     site: lafayette
+
+# =============================================================================
+# Unpoller sites — one container per UniFi controller (safe to commit)
+# =============================================================================
+# Each entry becomes container unpoller-<name>, its own up.conf, and a
+# Prometheus file_sd target carrying site=<site>. One process per controller so
+# an unreachable or rejecting controller only blanks its own site — with both
+# in one process, a Sakamoto timeout failed every poll and took Lafayette's
+# metrics down with it (2026-09-30 → 10-18).
+#
+# Adding or removing a site: docs/unpoller-sites.md.
+# name: [a-z0-9]+ only — container, file and DNS name on the lgtm network.
+# site: Prometheus label. Use the same value Loki's syslog/push labels use for
+#       that location, so dashboards can filter logs and metrics by one $site.
+# url/user/pass: controller URL lives in .env, credentials in Infisical (they
+#       must also be listed in infisical-secrets.template.env). The SITE1/SITE2
+#       key names predate this list; new sites use their own name, e.g.
+#       UNIFI_CONTROLLER_URL_USNEW.
+unpoller_sites:
+  - name: laf
+    site: lafayette
+    url: "{{ lookup('env', 'UNIFI_CONTROLLER_URL_SITE1') }}"
+    user: "{{ lookup('env', 'UNIFI_USERNAME_SITE1') }}"
+    pass: "{{ lookup('env', 'UNIFI_PASSWORD_SITE1') }}"
+  - name: sak
+    site: sakamoto
+    url: "{{ lookup('env', 'UNIFI_CONTROLLER_URL_SITE2') }}"
+    user: "{{ lookup('env', 'UNIFI_USERNAME_SITE2') }}"
+    pass: "{{ lookup('env', 'UNIFI_PASSWORD_SITE2') }}"
+# Derived — roles loop over these, never over the entries above: they hold
+# credentials, and a failed loop item is printed whole.
+unpoller_site_names: "{{ unpoller_sites | map(attribute='name') | list }}"
 
 # =============================================================================
 # PostgreSQL / Redis config (safe to commit)

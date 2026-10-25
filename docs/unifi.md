@@ -56,35 +56,25 @@ on line content instead.
 
 ## Metrics → Prometheus (Unpoller)
 
-Unpoller polls each Unifi controller's API and exposes metrics in Prometheus format.
-Prometheus scrapes Unpoller at `:9130`.
+One Unpoller container per controller (`unpoller-laf`, `unpoller-sak`), each
+polling its controller's API and exposing Prometheus metrics on `:9130`.
+Prometheus discovers them through `file_sd_configs` and labels each with
+`site` (`lafayette`, `sakamoto` — the same values as the syslog `site` label).
 
-**Configure controllers** via `.env`:
-
-```bash
-UNIFI_CONTROLLER_URL_SITE1=https://10.x.x.x:443
-UNIFI_USERNAME_SITE1=unpoller
-UNIFI_PASSWORD_SITE1=changeme
-
-UNIFI_CONTROLLER_URL_SITE2=https://10.x.x.x:443
-UNIFI_USERNAME_SITE2=unpoller
-UNIFI_PASSWORD_SITE2=changeme
-```
-
-Create a **read-only local user** in each Unifi controller for Unpoller:
-- UnifiOS (UDM / Dream Machine): Settings → Admins → Add Admin → Role: Read Only
-- Older CloudKey / software controller: port 8443 instead of 443
+Sites, credentials, adding/removing a site, verification and the
+`unpoller-watchdog` alerts: **[unpoller-sites.md](unpoller-sites.md)**.
 
 **Operations:**
 
 ```bash
 ssh <user>@<siem-host>
 
-sudo docker compose -f /opt/siem/config/docker-compose.lgtm.yml ps unpoller
-sudo docker compose -f /opt/siem/config/docker-compose.lgtm.yml logs -f unpoller
+sudo docker ps --filter name=unpoller
+sudo docker logs -f unpoller-sak
 ```
 
-Metrics appear in Grafana → Dashboards → Unifi WAN / Node Traffic.
+Metrics appear in Grafana → Dashboards → Unifi WAN / Node Traffic. Its queries
+select on `name` only, so they span every site.
 
 ---
 
@@ -188,4 +178,4 @@ Two traps when tracing an incident:
 
 ---
 
-**Note:** The Docker healthcheck is disabled for unpoller. The image is a minimal Go binary without `wget` or `curl`, so any `CMD`-based healthcheck fails with `executable file not found`. Liveness is observable via Prometheus scrape gaps in Grafana instead. See [PR #27](https://github.com/khirata/homelab/pull/27).
+**Note:** The Docker healthcheck is disabled for the unpoller containers. The image is a minimal Go binary without `wget` or `curl`, so any `CMD`-based healthcheck fails with `executable file not found`. Liveness is covered by the `unpoller-scrape-down` alert instead. See [PR #27](https://github.com/khirata/homelab/pull/27).
