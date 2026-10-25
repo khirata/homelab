@@ -1,0 +1,21 @@
+---
+# udm_v4v6 role — reads the Sakamoto UDM-SE's WAN counters over SSH and pushes
+# IPv4/IPv6 bytes to Pushgateway on siem_server. See docs/udm-v4v6.md.
+
+# UDM-SE at Sakamoto (br0 address; sak2 reaches it through its gateway).
+udm_v4v6_host: 10.77.11.1
+# Addresses sak2 connects from (eth0, wlan0) — the from= of the UDM key.
+udm_v4v6_from: [10.77.12.181, 10.77.12.182]
+
+# WAN1 (eth9) faces the Aterm, which terminates MAP-E today: the UDM sees
+# IPv4 and IPv6 as plain IPoE on eth9. Line changes:
+#   eo光 (PPPoE on the UDM)     udm_v4v6_mode: pppoe   (ppp_if defaults to ppp0)
+#   MAP-E on the UDM itself    udm_v4v6_mode: mape    (wan_if stays the
+#                              physical port; tunnel_if auto-detected)
+udm_v4v6_mode: native
+udm_v4v6_wan_if: eth9
+
+# By laf3's Tailscale address: sak2 does not accept Tailscale subnet routes,
+# and the UniFi site-to-site path does not reach 10.77.3.0/24 from here.
+udm_v4v6_pushgateway_url: "http://100.80.24.51:{{ pushgateway_port }}"
+udm_v4v6_site: sakamoto

@@ -166,6 +166,11 @@ Edit `ansible/group_vars/siem_server/vars.yml` and add node IPs to
 
 > Use IP addresses — Go's DNS resolver can't resolve `.local` mDNS names.
 
+Jobs Prometheus cannot reach push to Pushgateway (`:9091` on siem-host)
+instead; the `pushgateway` scrape job keeps their own `job`/`site` labels
+(`honor_labels: true`). Today that is only `udm_v4v6` — see
+[udm-v4v6.md](udm-v4v6.md).
+
 ---
 
 ## Data Locations

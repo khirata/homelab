@@ -1,0 +1,21 @@
+---
+# Per-site values (UDM address, WAN interface, mode, Pushgateway URL) live in
+# group_vars/udm_wan_pollers/vars.yml. Those below rarely change.
+udm_v4v6_user: root
+# native | mape | pppoe — see roles/udm_v4v6/files/udm_v4v6.sh
+udm_v4v6_mode: native
+udm_v4v6_ppp_if: ppp0
+# mape only. Empty = the single ip6tnl* that is not the ip6tnl0 fallback.
+udm_v4v6_tunnel_if: ""
+# Pushgateway grouping key: /metrics/job/<job>/site/<site>. The
+# udm-v4v6-push-stale alert matches on this job.
+udm_v4v6_push_job: udm_v4v6
+
+# The UDM side. This key may only run this command, from the poller's own
+# addresses: added to /root/.ssh/authorized_keys on the UDM as
+#   restrict,from="<poller IPs>",command="<this>" <public key>
+# It prints every interface's counters, so switching mode or interface never
+# needs a change on the UDM. See docs/udm-v4v6.md.
+udm_v4v6_forced_command: >-
+  cd /sys/class/net && grep -H . */statistics/rx_bytes */statistics/tx_bytes;
+  cd /proc/net/dev_snmp6 && grep -HE '^Ip6(In|Out)Octets' *

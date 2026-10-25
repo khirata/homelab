@@ -24,6 +24,7 @@ alloy_ui_port: 12345
 unifi_syslog_port_laf: 514
 unifi_syslog_port_sak: 515
 unpoller_port: 9130
+pushgateway_port: 9091
 wazuh_agent_port: 1514
 wazuh_enrollment_port: 1515
 wazuh_api_port: 55000
@@ -34,6 +35,7 @@ loki_version: "3.4.2"
 prometheus_version: "v3.3.0"
 alloy_version: "1.15.1"
 unpoller_version: "v2.11.2"
+pushgateway_version: "v1.11.4"
 wazuh_version: "4.14"
 redis_dashboard_id: 763
 redis_dashboard_revision: 1

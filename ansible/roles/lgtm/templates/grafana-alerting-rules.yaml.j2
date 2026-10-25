@@ -375,6 +375,56 @@ groups:
           summary: "No UniFi device metrics from site {{ '{{' }} $labels.site {{ '}}' }} for 15+ min"
           description: "Target is registered but unifi_device_uptime_seconds stopped. Check the other unpoller-watchdog alerts."
 
+  # udm_v4v6 (sak2) pushes the UDM-SE's IPv4/IPv6 WAN counters every minute.
+  # It pushes nothing when it fails, so Pushgateway keeps serving the last
+  # values and only push_time_seconds ages. Typical cause: a UniFi OS update
+  # wiped the restricted key from the UDM's authorized_keys (docs/udm-v4v6.md).
+  - orgId: 1
+    name: udm-v4v6-watchdog
+    folder: Homelab
+    interval: 1m
+    rules:
+
+      # 300s = 5 missed pushes. noDataState=Alerting: no push_time_seconds at
+      # all means Pushgateway is down, unscraped, or lost the group.
+      - uid: udm-v4v6-push-stale
+        title: "UDM WAN v4/v6 push stale"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: 'time() - push_time_seconds{job="udm_v4v6"}'
+              instant: true
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: reduce
+              expression: "A"
+              reducer: last
+              settings:
+                mode: dropNN
+          - refId: C
+            datasourceUid: "__expr__"
+            model:
+              type: threshold
+              expression: "B"
+              conditions:
+                - evaluator: { type: gt, params: [300] }
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        labels:
+          severity: warning
+          notify: ntfy
+        annotations:
+          # No $labels.site: on the noData path (Pushgateway down) there are no labels.
+          summary: "No UDM WAN IPv4/IPv6 counters pushed for 5+ min"
+          description: "udm_v4v6.timer on sak2 is failing — check journalctl -u udm_v4v6. Usually the UDM lost the restricted SSH key after a UniFi OS update."
+
 # Grafana's alerting provisioning is upsert-only: dropping a rule from `groups`
 # above leaves the previously provisioned rule live in Grafana's database, so it
 # keeps evaluating and paging. Withdrawing a rule therefore takes two steps —
