@@ -47,7 +47,16 @@ notification and clears the dedup lock automatically.
 | `alloy` | all hosts | systemd `OnFailure=` |
 | `wazuh-manager` | siem_server | systemd `OnFailure=` |
 | `docker` daemon | siem_server | systemd `OnFailure=` |
-| Grafana, Loki, Prometheus, Infisical, Unpoller | siem_server | Docker event notifier |
+| Grafana, Loki, Prometheus, Infisical, Unpoller (`unpoller-*`) | siem_server | Docker event notifier |
+| Grafana alerts labelled `notify=ntfy` (`unpoller-watchdog`) | siem_server | Grafana webhook contact point `homelab-ntfy` |
+
+The Grafana route is the one exception to "independent of Grafana": it is for
+alerts only Grafana can evaluate (a site's metrics stopping), and it posts to the
+primary server only, through ntfy's built-in `grafana` template. There is no
+ntfy.sh fallback on this route — Grafana cannot fail over between receivers, and
+listing both would deliver every alert twice. To send another rule to ntfy, add
+`notify: ntfy` to its labels. Requires `NTFY_TOKEN`; without it the contact
+point and route are not rendered.
 
 ---
 

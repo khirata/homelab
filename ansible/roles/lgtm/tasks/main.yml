@@ -1,4 +1,36 @@
 ---
+# Runs before anything is templated: docker-compose.lgtm.yml loops over
+# unpoller_sites too, so a bad entry must stop the role before it is written.
+# Never loop over the entries themselves — a failed loop item is dumped whole,
+# credentials included, whatever loop_control.label says. Collect bad names
+# instead, and loop over names (unpoller_site_names) where per-site work is done.
+- name: Validate unpoller_sites
+  ansible.builtin.assert:
+    that:
+      - unpoller_sites | length > 0
+      - unpoller_site_names | unique | length == unpoller_site_names | length
+      - unpoller_invalid_sites | length == 0
+    fail_msg: >-
+      unpoller_sites must be non-empty with unique names; each entry needs a
+      [a-z0-9]+ name, a [A-Za-z0-9_-]+ site and non-empty url/user/pass.
+      Invalid: {{ unpoller_invalid_sites | join(', ') }}. Names: {{ unpoller_site_names | join(', ') }}.
+      An empty url/user/pass means its .env or Infisical key is missing —
+      see docs/unpoller-sites.md.
+    quiet: true
+  vars:
+    unpoller_invalid_sites: >-
+      {%- set bad = [] -%}
+      {%- for s in unpoller_sites -%}
+      {%- if not (s.name | default('') is match('^[a-z0-9]+$'))
+             or not (s.site | default('') is match('^[A-Za-z0-9_-]+$'))
+             or (s.url | default('') | length == 0)
+             or (s.user | default('') | length == 0)
+             or (s.pass | default('') | length == 0) -%}
+      {%- set _ = bad.append(s.name | default('?')) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ bad }}
+
 - name: Create SIEM config directory
   ansible.builtin.file:
     path: "{{ siem_config_dir }}"
@@ -101,13 +133,15 @@
     mode: "0644"
   tags: [dashboards]
 
+# 0640: holds the Discord webhook and ntfy token. Grafana runs as 472:0, so
+# group root keeps it readable inside the container.
 - name: Template Grafana alerting contact points
   ansible.builtin.template:
     src: grafana-alerting-contact-points.yaml.j2
     dest: "{{ siem_config_dir }}/grafana-provisioning/alerting/contact-points.yaml"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   notify: Restart LGTM stack
 
 - name: Template Grafana alerting notification policy
@@ -128,13 +162,61 @@
     mode: "0644"
   notify: Restart LGTM stack
 
-- name: Template Unpoller config
+# ── Unpoller: one container + one file_sd target per unpoller_sites entry ──
+- name: Create Unpoller config and Prometheus target directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ siem_config_dir }}/unpoller", mode: "0700" }
+    - { path: "{{ siem_config_dir }}/prometheus-targets", mode: "0755" }
+    - { path: "{{ siem_config_dir }}/prometheus-targets/unpoller", mode: "0755" }
+
+- name: Template Unpoller config per site
   ansible.builtin.template:
     src: unpoller.conf.j2
-    dest: "{{ siem_config_dir }}/unpoller.conf"
+    dest: "{{ siem_config_dir }}/unpoller/{{ item }}.conf"
     owner: root
     group: root
     mode: "0600"
+  loop: "{{ unpoller_site_names }}"
+  vars:
+    unpoller_site: "{{ unpoller_sites | selectattr('name', 'equalto', item) | first }}"
+  notify: Restart LGTM stack
+
+- name: Template Prometheus file_sd target per Unpoller site
+  ansible.builtin.template:
+    src: prometheus-target-unpoller.yml.j2
+    dest: "{{ siem_config_dir }}/prometheus-targets/unpoller/{{ item }}.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ unpoller_site_names }}"
+  vars:
+    unpoller_site: "{{ unpoller_sites | selectattr('name', 'equalto', item) | first }}"
+
+- name: Find Unpoller site files
+  ansible.builtin.find:
+    paths:
+      - "{{ siem_config_dir }}/unpoller"
+      - "{{ siem_config_dir }}/prometheus-targets/unpoller"
+    patterns: ["*.conf", "*.yml"]
+  register: lgtm_unpoller_site_files
+
+# Removing an entry from unpoller_sites removes its files here and its
+# container after the stack is up. The single-process unpoller.conf predates
+# per-site files and holds both sites' credentials.
+- name: Remove files of sites no longer in unpoller_sites
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: >-
+    {{ lgtm_unpoller_site_files.files | map(attribute='path')
+       | reject('search', '/(' ~ (unpoller_site_names | join('|')) ~ ')[.](conf|yml)$')
+       | list + [siem_config_dir ~ '/unpoller.conf'] }}
   notify: Restart LGTM stack
 
 - name: Deploy docker-event-notifier script
@@ -188,4 +270,29 @@
     cmd: docker compose -f {{ siem_config_dir }}/docker-compose.lgtm.yml up -d --pull always
   register: lgtm_up
   changed_when: "'Started' in lgtm_up.stdout or 'Created' in lgtm_up.stdout or 'Pulled' in lgtm_up.stdout"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# docker rm -f kills with SIGKILL, so docker-event-notifier pushes one
+# "Container Down ... die (exit 137)" per removed site. Expected; see
+# docs/unpoller-sites.md.
+#
+# Not `up --remove-orphans`: the LGTM, Infisical and Wazuh compose files share
+# the project name "config" (all live in siem_config_dir), so every other
+# file's containers count as orphans here and would be deleted.
+- name: List Unpoller containers
+  ansible.builtin.command:
+    cmd: docker ps -a --filter name=unpoller --format json
+  register: lgtm_unpoller_containers
+  changed_when: false
+  check_mode: false  # read-only; lets --check report what would be removed
+
+- name: Remove Unpoller containers of sites no longer in unpoller_sites
+  ansible.builtin.command:
+    cmd: docker rm -f {{ item }}
+  loop: >-
+    {{ lgtm_unpoller_containers.stdout_lines | map('from_json') | map(attribute='Names')
+       | select('match', '^unpoller(-[a-z0-9]+)?$')
+       | reject('in', unpoller_site_names | map('regex_replace', '^', 'unpoller-') | list)
+       | list }}
+  changed_when: true
   ignore_errors: "{{ ansible_check_mode }}"

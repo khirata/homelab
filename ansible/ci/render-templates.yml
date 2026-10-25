@@ -96,11 +96,23 @@
         dest: "{{ render_dir }}/grafana-alerting-notification-policy.yaml"
         mode: "0644"
 
-    - name: Render unpoller.conf
+    - name: Render unpoller.conf per site
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../roles/lgtm/templates/unpoller.conf.j2"
-        dest: "{{ render_dir }}/unpoller.conf"
+        dest: "{{ render_dir }}/unpoller-{{ item }}.conf"
         mode: "0600"
+      loop: "{{ unpoller_sites | map(attribute='name') | list }}"
+      vars:
+        unpoller_site: "{{ unpoller_sites | selectattr('name', 'equalto', item) | first }}"
+
+    - name: Render Prometheus file_sd target per Unpoller site
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/lgtm/templates/prometheus-target-unpoller.yml.j2"
+        dest: "{{ render_dir }}/prometheus-target-unpoller-{{ item }}.yml"
+        mode: "0644"
+      loop: "{{ unpoller_sites | map(attribute='name') | list }}"
+      vars:
+        unpoller_site: "{{ unpoller_sites | selectattr('name', 'equalto', item) | first }}"
 
     # ── Alloy templates ───────────────────────────────────────────────────
 

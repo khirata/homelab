@@ -7,7 +7,9 @@ global:
   scrape_timeout: 10s
 
 scrape_configs:
+  # One target per unpoller_sites entry, each labelled site=<site>. Adding a
+  # site writes a file here; this config is not touched.
   - job_name: unpoller
     scrape_interval: 30s
-    static_configs:
-      - targets: ['unpoller:{{ unpoller_port }}']
+    file_sd_configs:
+      - files: ['/etc/prometheus/targets/unpoller/*.yml']

@@ -111,7 +111,7 @@ them empty rather than failing.
 | `GRAFANA_EXTERNAL_URL` | Public URL Grafana embeds in alert links |
 | `CLOUDFLARE_TEAM_NAME` | Cloudflare Access team — enables Grafana JWT auth when set |
 | `NTFY_TOPIC` | ntfy topic on the self-hosted server (defaults to `homelab`) |
-| `UNIFI_CONTROLLER_URL_SITE1` / `_SITE2` | Unifi controller URLs (443 on UDM, 8443 on CloudKey) |
+| `UNIFI_CONTROLLER_URL_<SITE>` | Unifi controller URL per `unpoller_sites` entry (443 on UDM, 8443 on CloudKey) — [unpoller-sites.md](unpoller-sites.md) |
 
 ## In Infisical (prod environment)
 

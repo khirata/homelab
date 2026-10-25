@@ -2,6 +2,16 @@
 # Managed by Ansible — do not edit manually.
 # Template: roles/lgtm/templates/docker-compose.lgtm.yml.j2
 
+# Shared by every unpoller-<name> service below; each site adds only its name
+# and config file.
+x-unpoller: &unpoller
+  image: ghcr.io/unpoller/unpoller:{{ unpoller_version }}
+  restart: unless-stopped
+  networks:
+    - lgtm
+  healthcheck:
+    disable: true
+
 networks:
   lgtm:
     driver: bridge
@@ -83,6 +93,7 @@ services:
     volumes:
       - prometheus_data:/prometheus
       - {{ siem_config_dir }}/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - {{ siem_config_dir }}/prometheus-targets:/etc/prometheus/targets:ro
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -94,14 +105,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+{% for site in unpoller_sites %}
 
-  unpoller:
-    image: ghcr.io/unpoller/unpoller:{{ unpoller_version }}
-    container_name: unpoller
-    restart: unless-stopped
-    networks:
-      - lgtm
+  unpoller-{{ site.name }}:
+    <<: *unpoller
+    container_name: unpoller-{{ site.name }}
     volumes:
-      - {{ siem_config_dir }}/unpoller.conf:/etc/unpoller/up.conf:ro
-    healthcheck:
-      disable: true
+      - {{ siem_config_dir }}/unpoller/{{ site.name }}.conf:/etc/unpoller/up.conf:ro
+{% endfor %}

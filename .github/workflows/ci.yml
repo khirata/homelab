@@ -197,7 +197,21 @@ jobs:
             /tmp/rendered/grafana-alerting-contact-points.yaml \
             /tmp/rendered/grafana-alerting-notification-policy.yaml \
             /tmp/rendered/docker-compose.lgtm.yml \
+            /tmp/rendered/prometheus-target-unpoller-one.yml \
+            /tmp/rendered/prometheus-target-unpoller-two.yml \
             /tmp/rendered/docker-compose.infisical.yml
+
+      # yamllint accepts the x-unpoller anchor and `<<:` merges whatever they
+      # expand to; compose itself resolves them and checks the result.
+      - name: Validate rendered LGTM compose file
+        run: |
+          set -euo pipefail
+          docker compose -f /tmp/rendered/docker-compose.lgtm.yml config --quiet
+          for svc in unpoller-one unpoller-two; do
+            docker compose -f /tmp/rendered/docker-compose.lgtm.yml config --format json \
+              | jq -e --arg s "$svc" '.services[$s].image | startswith("ghcr.io/unpoller/unpoller:")' >/dev/null \
+              || { echo "::error::$svc did not inherit the x-unpoller image"; exit 1; }
+          done
 
       - name: Validate rendered Infisical config
         run: |

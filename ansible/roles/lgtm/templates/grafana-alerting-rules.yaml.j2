@@ -223,6 +223,158 @@ groups:
           summary: "No UniFi syslog from site {{ '{{' }} $labels.site {{ '}}' }} for 5+ min"
           description: "UniFi GW may be unreachable or SIEM syslog listener is broken."
 
+  # Unpoller — one container per site (unpoller_sites). Every rule groups by
+  # site or container, never by a site name, so a site added to unpoller_sites
+  # is watched with no change here. notify=ntfy routes these to ntfy as well
+  # as the default channels (notification-policy.yaml).
+  #
+  # The three cover different breaks:
+  #   fetch-failing  unpoller can't read its controller (timeout, 401) — logs
+  #   scrape-down    Prometheus can't scrape unpoller (container gone, or the
+  #                  poll failed so unpoller answered the scrape with an error)
+  #   data-missing   a registered site has no device metrics for 15 min,
+  #                  whatever the cause — the backstop for the other two
+  #
+  # Baseline, measured before the split: a controller occasionally fails one
+  # poll (401 on session expiry, a truncated JSON reply) roughly 30x/day across
+  # both sites, each recovering on the next poll. The thresholds below ignore a
+  # lone failure and fire only when a site stays broken.
+  - orgId: 1
+    name: unpoller-watchdog
+    folder: Homelab
+    interval: 1m
+    rules:
+
+      # Threshold from the 2026-10 outages, not from the poll interval. With
+      # the controller unreachable each poll hangs on TCP connect for ~135s
+      # (unpoller v2.11 has no request timeout) and polls run one at a time,
+      # so a dead site logs only 4-5 failures per 10 min — never fewer than 4
+      # across the 10-05 outage. Healthy, a site's worst 10 min was 3: a burst
+      # of 401s within 2s on session expiry. >3 sits between the two.
+      # noDataState=OK: no failure lines is the healthy state. A stopped
+      # container also logs nothing — unpoller-scrape-down covers that.
+      - uid: unpoller-fetch-failing
+        title: "Unpoller fetch failing"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            relativeTimeRange:
+              from: 900
+              to: 0
+            model:
+              expr: 'sum by (container_name) (count_over_time({job="docker", container_name=~"unpoller-.+"} |= "metric fetch failed" [10m]))'
+              instant: true
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: reduce
+              expression: "A"
+              reducer: last
+              settings:
+                mode: dropNN
+          - refId: C
+            datasourceUid: "__expr__"
+            model:
+              type: threshold
+              expression: "B"
+              conditions:
+                - evaluator: { type: gt, params: [3] }
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        labels:
+          severity: warning
+          notify: ntfy
+        annotations:
+          summary: "{{ '{{' }} $labels.container_name {{ '}}' }} cannot fetch from its UniFi controller for 5+ min"
+          description: "unpoller logs 'metric fetch failed' on most polls — controller unreachable or its read-only user rejected. See docker logs."
+
+      # up is 0 when a scrape fails outright. unpoller turns a failed poll into
+      # a failed scrape, so this fires for a dead controller as well as for a
+      # dead container. noDataState=Alerting: no up series at all means no
+      # unpoller target is registered, i.e. file_sd is broken.
+      - uid: unpoller-scrape-down
+        title: "Unpoller scrape down"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: 'up{job="unpoller"}'
+              instant: true
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: reduce
+              expression: "A"
+              reducer: last
+              settings:
+                mode: dropNN
+          - refId: C
+            datasourceUid: "__expr__"
+            model:
+              type: threshold
+              expression: "B"
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 5m
+        labels:
+          severity: warning
+          notify: ntfy
+        annotations:
+          summary: "Prometheus cannot scrape unpoller for site {{ '{{' }} $labels.site {{ '}}' }} for 5+ min"
+          description: "Target {{ '{{' }} $labels.instance {{ '}}' }} is down. Either the container is not running or every poll of its controller fails."
+
+      # Every site with a registered target (any up value) that has had no
+      # unifi_device_uptime_seconds sample in 5 min. Present for every adopted
+      # device, so a healthy site always has it. last_over_time skips the
+      # staleness markers a single failed scrape leaves, so one bad poll does
+      # not open a gap. Fires alongside scrape-down for a dead controller, and
+      # alone for a poll that "succeeds" with no devices (e.g. a user that can
+      # log in but sees no site).
+      - uid: unpoller-data-missing
+        title: "Unpoller site data missing"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: 'group by (site) (up{job="unpoller"}) unless on (site) group by (site) (last_over_time(unifi_device_uptime_seconds{job="unpoller"}[5m]))'
+              instant: true
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: reduce
+              expression: "A"
+              reducer: last
+              settings:
+                mode: dropNN
+          - refId: C
+            datasourceUid: "__expr__"
+            model:
+              type: threshold
+              expression: "B"
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        noDataState: OK
+        execErrState: Alerting
+        for: 15m
+        labels:
+          severity: warning
+          notify: ntfy
+        annotations:
+          summary: "No UniFi device metrics from site {{ '{{' }} $labels.site {{ '}}' }} for 15+ min"
+          description: "Target is registered but unifi_device_uptime_seconds stopped. Check the other unpoller-watchdog alerts."
+
 # Grafana's alerting provisioning is upsert-only: dropping a rule from `groups`
 # above leaves the previously provisioned rule live in Grafana's database, so it
 # keeps evaluating and paging. Withdrawing a rule therefore takes two steps —
