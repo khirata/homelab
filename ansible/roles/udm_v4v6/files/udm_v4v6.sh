@@ -3,8 +3,9 @@
 # Source: roles/udm_v4v6/files/udm_v4v6.sh
 #
 # Reads the UDM-SE's WAN byte counters over SSH (read-only — nothing is
-# installed on the UDM, firmware updates would wipe it) and pushes them to
-# Pushgateway as udm_wan_bytes_total{family="ipv4|ipv6", direction="rx|tx"}.
+# installed on the UDM, firmware updates would wipe it) and writes them for
+# Alloy's textfile collector as
+# udm_wan_bytes_total{family="ipv4|ipv6", direction="rx|tx", site="…"}.
 #
 # The UDM side is a forced command in /root/.ssh/authorized_keys that prints
 # every interface's counters, so this key can read counters and nothing else:
@@ -31,12 +32,14 @@
 #   mape    the 40-byte outer IPv6 header of each tunnelled packet stays in
 #           the IPv6 figure.
 #
-# On any failure (SSH, parse, push) this exits non-zero without pushing; the
-# Grafana udm-v4v6-push-stale alert fires once Pushgateway's last push is old.
+# On any failure (SSH, parse, write) this exits non-zero and leaves the last
+# .prom file in place. Alloy keeps exporting those old values, so staleness is
+# told by udm_v4v6_last_success_timestamp_seconds: the Grafana udm-v4v6-stale
+# alert fires once it is over 5 minutes old.
 set -euo pipefail
 
 : "${UDM_HOST:?UDM_HOST is not set (see /etc/default/udm_v4v6)}"
-: "${PUSHGATEWAY_URL:?PUSHGATEWAY_URL is not set (see /etc/default/udm_v4v6)}"
+: "${TEXTFILE_DIR:?TEXTFILE_DIR is not set (see /etc/default/udm_v4v6)}"
 UDM_USER=${UDM_USER:-root}
 UDM_MODE=${UDM_MODE:-native}
 UDM_WAN_IF=${UDM_WAN_IF:-}
@@ -50,8 +53,8 @@ if [[ -n ${CREDENTIALS_DIRECTORY:-} ]]; then
 else
   UDM_SSH_KEY=${UDM_SSH_KEY:-/etc/udm_v4v6/id_ed25519}
 fi
-PUSH_JOB=${PUSH_JOB:-udm_v4v6}
-PUSH_SITE=${PUSH_SITE:-sakamoto}
+UDM_SITE=${UDM_SITE:-sakamoto}
+PROM_FILE=$TEXTFILE_DIR/udm_v4v6.prom
 STATE_FILE=${STATE_DIRECTORY:-/var/lib/udm_v4v6}/last
 
 die() { echo "udm_v4v6: $*" >&2; exit 1; }
@@ -159,26 +162,33 @@ for d in rx tx; do
   save+=([T_$d]=${T[$d]} [K_$d]=${K[$d]} [carry_$d]=$carry)
 done
 
+# No timestamps in the file: the textfile collector rejects them.
+lbl="site=\"$UDM_SITE\""
 body=$(cat <<EOF
 # HELP udm_wan_bytes_total UDM-SE WAN bytes by IP family (one family is derived, see udm_v4v6.sh).
 # TYPE udm_wan_bytes_total counter
-udm_wan_bytes_total{family="ipv4",direction="rx"} ${out[ipv4_rx]}
-udm_wan_bytes_total{family="ipv4",direction="tx"} ${out[ipv4_tx]}
-udm_wan_bytes_total{family="ipv6",direction="rx"} ${out[ipv6_rx]}
-udm_wan_bytes_total{family="ipv6",direction="tx"} ${out[ipv6_tx]}
+udm_wan_bytes_total{$lbl,family="ipv4",direction="rx"} ${out[ipv4_rx]}
+udm_wan_bytes_total{$lbl,family="ipv4",direction="tx"} ${out[ipv4_tx]}
+udm_wan_bytes_total{$lbl,family="ipv6",direction="rx"} ${out[ipv6_rx]}
+udm_wan_bytes_total{$lbl,family="ipv6",direction="tx"} ${out[ipv6_tx]}
 # HELP udm_v4v6_info Counter source in use by udm_v4v6.sh.
 # TYPE udm_v4v6_info gauge
-udm_v4v6_info{mode="$UDM_MODE",wan_if="$wan",tunnel_if="${tnl:-}"} 1
+udm_v4v6_info{$lbl,mode="$UDM_MODE",wan_if="$wan",tunnel_if="${tnl:-}"} 1
+# HELP udm_v4v6_last_success_timestamp_seconds When udm_v4v6.sh last read the UDM and wrote this file.
+# TYPE udm_v4v6_last_success_timestamp_seconds gauge
+udm_v4v6_last_success_timestamp_seconds{$lbl} $(date +%s)
 EOF
 )
 
-# PUT replaces the whole group, so a renamed interface leaves no stale series.
-curl -fsS --max-time 15 -X PUT --data-binary @- \
-  "${PUSHGATEWAY_URL%/}/metrics/job/$PUSH_JOB/site/$PUSH_SITE" <<<"$body" \
-  || die "push to $PUSHGATEWAY_URL failed"
+# Written beside the target and renamed, so Alloy never reads a partial file;
+# the collector only reads *.prom, so the dot-file is never picked up.
+tmp=$TEXTFILE_DIR/.udm_v4v6.prom.tmp
+printf '%s\n' "$body" >"$tmp" || die "cannot write $tmp"
+chmod 0644 "$tmp"
+mv -f "$tmp" "$PROM_FILE" || die "cannot rename $tmp to $PROM_FILE"
 
-# Saved only after a successful push, so the accumulators continue from what
-# Prometheus has actually seen.
+# Saved only after the file is in place, so the accumulators continue from what
+# Alloy has actually exported.
 for k in "${!out[@]}"; do save[$k]=${out[$k]}; done
 for k in "${!save[@]}"; do echo "$k ${save[$k]}"; done >"$STATE_FILE.tmp"
 mv "$STATE_FILE.tmp" "$STATE_FILE"

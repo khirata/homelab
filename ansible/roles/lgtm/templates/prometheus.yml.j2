@@ -13,10 +13,3 @@ scrape_configs:
     scrape_interval: 30s
     file_sd_configs:
       - files: ['/etc/prometheus/targets/unpoller/*.yml']
-
-  # Pushed metrics keep the job/site they were pushed with (honor_labels), so
-  # udm_v4v6 series carry job="udm_v4v6", not job="pushgateway".
-  - job_name: pushgateway
-    honor_labels: true
-    static_configs:
-      - targets: ['pushgateway:9091']

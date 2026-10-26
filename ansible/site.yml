@@ -69,14 +69,7 @@
     - role: wazuh_stack
       tags: [wazuh_stack]
     - alloy        # server mode: receives Unifi syslog on UDP/514
+    - role: udm_v4v6  # Sakamoto UDM-SE WAN IPv4/IPv6 → Alloy textfile collector
+      tags: [udm_v4v6]
     - role: infisical
       tags: [infisical]
-
-- name: UDM-SE WAN IPv4/IPv6 poller
-  hosts: udm_wan_pollers
-  become: true
-  vars:
-    ansible_remote_tmp: /tmp
-  roles:
-    - role: udm_v4v6
-      tags: [udm_v4v6]

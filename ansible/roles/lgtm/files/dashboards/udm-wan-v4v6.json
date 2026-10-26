@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "UDM-SE WAN traffic split into IPv4 / IPv6. Counters read from the UDM over SSH by udm_v4v6 on sak2 and pushed to Pushgateway every minute (docs/udm-v4v6.md). Unpoller cannot split by IP family.",
+  "description": "UDM-SE WAN traffic split into IPv4 / IPv6. Counters read from the UDM over SSH every minute by udm_v4v6 on the SIEM server and exported through Alloy's textfile collector (docs/udm-v4v6.md). Unpoller cannot split by IP family.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -127,7 +127,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\", family=\"ipv4\"}[1h])) / sum(increase(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\"}[1h]))",
+          "expr": "sum(increase(udm_wan_bytes_total{site=~\"$site\", family=\"ipv4\"}[1h])) / sum(increase(udm_wan_bytes_total{site=~\"$site\"}[1h]))",
           "legendFormat": "IPv4 share (1h)",
           "refId": "A",
           "instant": true,
@@ -190,7 +190,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\", family=\"ipv4\"}[24h])) / sum(increase(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\"}[24h]))",
+          "expr": "sum(increase(udm_wan_bytes_total{site=~\"$site\", family=\"ipv4\"}[24h])) / sum(increase(udm_wan_bytes_total{site=~\"$site\"}[24h]))",
           "legendFormat": "IPv4 share (24h)",
           "refId": "A",
           "instant": true,
@@ -253,7 +253,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\", family=\"ipv4\"}[24h]))",
+          "expr": "sum(increase(udm_wan_bytes_total{site=~\"$site\", family=\"ipv4\"}[24h]))",
           "legendFormat": "IPv4 (24h)",
           "refId": "A",
           "instant": true,
@@ -316,7 +316,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\", family=\"ipv6\"}[24h]))",
+          "expr": "sum(increase(udm_wan_bytes_total{site=~\"$site\", family=\"ipv6\"}[24h]))",
           "legendFormat": "IPv6 (24h)",
           "refId": "A",
           "instant": true,
@@ -331,7 +331,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Seconds since udm_v4v6 on sak2 last pushed. The udm-v4v6-push-stale alert fires above 300.",
+      "description": "Seconds since udm_v4v6 last read the UDM successfully. The udm-v4v6-stale alert fires above 300.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -387,14 +387,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max(time() - push_time_seconds{job=\"udm_v4v6\", site=~\"$site\"})",
+          "expr": "max(time() - udm_v4v6_last_success_timestamp_seconds{site=~\"$site\"})",
           "legendFormat": "Last push",
           "refId": "A",
           "instant": true,
           "range": false
         }
       ],
-      "title": "Last push",
+      "title": "Last update",
       "type": "stat"
     },
     {
@@ -402,7 +402,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Counter source udm_v4v6.sh is using (UDM_MODE and interfaces from /etc/default/udm_v4v6 on sak2).",
+      "description": "Counter source udm_v4v6.sh is using (UDM_MODE and interfaces from /etc/default/udm_v4v6 on the SIEM server).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -447,7 +447,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "udm_v4v6_info{job=\"udm_v4v6\", site=~\"$site\"}",
+          "expr": "udm_v4v6_info{site=~\"$site\"}",
           "legendFormat": "{{mode}} · {{wan_if}} {{tunnel_if}}",
           "refId": "A",
           "instant": true,
@@ -525,7 +525,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (family, direction) (rate(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\"}[5m])) * 8",
+          "expr": "sum by (family, direction) (rate(udm_wan_bytes_total{site=~\"$site\"}[5m])) * 8",
           "legendFormat": "{{family}} {{direction}}",
           "refId": "A"
         }
@@ -590,7 +590,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (direction) (increase(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\", family=\"ipv4\"}[1h])) / sum by (direction) (increase(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\"}[1h]))",
+          "expr": "sum by (direction) (increase(udm_wan_bytes_total{site=~\"$site\", family=\"ipv4\"}[1h])) / sum by (direction) (increase(udm_wan_bytes_total{site=~\"$site\"}[1h]))",
           "legendFormat": "{{direction}}",
           "refId": "A"
         },
@@ -599,7 +599,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\", family=\"ipv4\"}[1h])) / sum(increase(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\"}[1h]))",
+          "expr": "sum(increase(udm_wan_bytes_total{site=~\"$site\", family=\"ipv4\"}[1h])) / sum(increase(udm_wan_bytes_total{site=~\"$site\"}[1h]))",
           "legendFormat": "rx + tx",
           "refId": "B"
         }
@@ -661,7 +661,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (family) (increase(udm_wan_bytes_total{job=\"udm_v4v6\", site=~\"$site\"}[1d]))",
+          "expr": "sum by (family) (increase(udm_wan_bytes_total{site=~\"$site\"}[1d]))",
           "legendFormat": "{{family}}",
           "refId": "A",
           "interval": "1d"

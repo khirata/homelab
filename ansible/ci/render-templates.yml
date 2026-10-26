@@ -158,9 +158,16 @@
         udm_v4v6_wan_if: eth9
         udm_v4v6_ppp_if: ppp0
         udm_v4v6_tunnel_if: ""
-        udm_v4v6_pushgateway_url: "http://10.0.0.1:{{ pushgateway_port }}"
-        udm_v4v6_push_job: udm_v4v6
         udm_v4v6_site: ci-site
+        udm_v4v6_textfile_dir: /var/lib/node_exporter/textfile_collector
+
+    - name: Render udm_v4v6.service
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/udm_v4v6/templates/udm_v4v6.service.j2"
+        dest: "{{ render_dir }}/udm_v4v6.service"
+        mode: "0644"
+      vars:
+        udm_v4v6_textfile_dir: /var/lib/node_exporter/textfile_collector
 
     # ── Redis / Infisical templates ───────────────────────────────────────
 

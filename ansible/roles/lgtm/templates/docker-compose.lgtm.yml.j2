@@ -35,12 +35,6 @@ volumes:
       type: none
       o: bind
       device: {{ siem_data_dir }}/prometheus
-  pushgateway_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: {{ siem_data_dir }}/pushgateway
 
 services:
   grafana:
@@ -107,30 +101,6 @@ services:
       - --web.enable-remote-write-receiver
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:9090/-/healthy || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  # Receives metrics from jobs Prometheus cannot scrape — today udm_v4v6 on
-  # sak2, which reaches this host only over Tailscale. Persisted so a restart
-  # keeps the last push and its push_time_seconds (an empty Pushgateway would
-  # look like "no data" rather than "stale").
-  pushgateway:
-    image: prom/pushgateway:{{ pushgateway_version }}
-    container_name: pushgateway
-    restart: unless-stopped
-    networks:
-      - lgtm
-    ports:
-      - "{{ pushgateway_port }}:9091"
-    volumes:
-      - pushgateway_data:/data
-    command:
-      - --persistence.file=/data/pushgateway.db
-      - --persistence.interval=5m
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:9091/-/healthy || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3

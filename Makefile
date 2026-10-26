@@ -103,10 +103,10 @@ deploy-nodes: _infisical-check
 deploy-wazuh: _infisical-check
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags wazuh_stack
 
-## Deploy only the UDM-SE WAN IPv4/IPv6 poller on sak2 (udm_v4v6 role) — no backup pre-step
-## Pushgateway, its scrape job and the dashboard ship with deploy-siem.
+## Deploy only the UDM-SE WAN IPv4/IPv6 poller on the SIEM server (udm_v4v6 role) — no backup pre-step
+## deploy-siem includes it; its alert and dashboard ship with deploy-siem / deploy-dashboards.
 deploy-udm-v4v6: _infisical-check
-	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit udm_wan_pollers --tags udm_v4v6
+	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags udm_v4v6
 
 ## Deploy only Grafana dashboards (no stack restart)
 deploy-dashboards: _infisical-check

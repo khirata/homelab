@@ -1,7 +1,8 @@
 ---
-# Polls the UDM-SE's WAN counters from a Pi on the UDM's LAN. Nothing is
-# installed on the UDM: its side is one restricted line in authorized_keys,
-# which this role prints but never writes (docs/udm-v4v6.md).
+# Polls the UDM-SE's WAN counters over SSH and leaves them for Alloy's
+# textfile collector. Nothing is installed on the UDM: its side is one
+# restricted line in authorized_keys, which this role prints but never writes
+# (docs/udm-v4v6.md).
 - name: Validate udm_v4v6 settings
   ansible.builtin.assert:
     that:
@@ -9,12 +10,12 @@
       - udm_v4v6_host | length > 0
       - udm_v4v6_from | length > 0
       - udm_v4v6_wan_if | length > 0 or udm_v4v6_mode == 'pppoe'
-      - udm_v4v6_pushgateway_url is match('^https?://')
       - udm_v4v6_site is match('^[A-Za-z0-9_-]+$')
+      - udm_v4v6_textfile_dir is match('^/')
     fail_msg: >-
-      Set udm_v4v6_host, udm_v4v6_from, udm_v4v6_wan_if, udm_v4v6_pushgateway_url and
-      udm_v4v6_site in group_vars/udm_wan_pollers; udm_v4v6_mode must be
-      native, mape or pppoe (got {{ udm_v4v6_mode }}).
+      Set udm_v4v6_host, udm_v4v6_from, udm_v4v6_wan_if and udm_v4v6_site in
+      group_vars/siem_server; udm_v4v6_mode must be native, mape or pppoe
+      (got {{ udm_v4v6_mode }}).
     quiet: true
 
 - name: Create udm-v4v6 system user
@@ -37,7 +38,7 @@
 
 - name: Generate the UDM polling key (once)
   ansible.builtin.command:
-    cmd: ssh-keygen -q -t ed25519 -N "" -C "udm_v4v6@{{ inventory_hostname }}" -f /etc/udm_v4v6/id_ed25519
+    cmd: ssh-keygen -q -t ed25519 -N "" -C "udm_v4v6@{{ ansible_facts['hostname'] | default(inventory_hostname) }}" -f /etc/udm_v4v6/id_ed25519
     creates: /etc/udm_v4v6/id_ed25519
 
 - name: Check for the UDM polling public key
@@ -90,16 +91,42 @@
     group: root
     mode: "0644"
 
-- name: Install udm_v4v6 systemd units
-  ansible.builtin.copy:
-    src: "{{ item }}"
-    dest: /etc/systemd/system/{{ item }}
+# The directory belongs to the textfile collector and other writers (e.g.
+# rpi-metrics' rpi.prom), so it stays root-owned; an ACL lets the service user
+# create and rename its own file there. The script writes a dot-file and
+# renames it to udm_v4v6.prom, so Alloy never reads a half-written file.
+- name: Create the textfile collector directory
+  ansible.builtin.file:
+    path: "{{ udm_v4v6_textfile_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Let udm-v4v6 write into the textfile collector directory
+  ansible.posix.acl:
+    path: "{{ udm_v4v6_textfile_dir }}"
+    entity: udm-v4v6
+    etype: user
+    permissions: rwx
+    state: present
+  ignore_errors: "{{ ansible_check_mode }}"  # the user may not exist yet under --check
+
+- name: Template udm_v4v6 systemd service
+  ansible.builtin.template:
+    src: udm_v4v6.service.j2
+    dest: /etc/systemd/system/udm_v4v6.service
     owner: root
     group: root
     mode: "0644"
-  loop:
-    - udm_v4v6.service
-    - udm_v4v6.timer
+
+- name: Install udm_v4v6 systemd timer
+  ansible.builtin.copy:
+    src: udm_v4v6.timer
+    dest: /etc/systemd/system/udm_v4v6.timer
+    owner: root
+    group: root
+    mode: "0644"
 
 - name: Enable and start udm_v4v6 timer
   ansible.builtin.systemd:

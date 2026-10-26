@@ -1,19 +1,21 @@
 ---
-# Per-site values (UDM address, WAN interface, mode, Pushgateway URL) live in
-# group_vars/udm_wan_pollers/vars.yml. Those below rarely change.
+# Per-site values (UDM address, from= addresses, WAN interface, mode, site)
+# live in group_vars/siem_server/vars.yml. Those below rarely change.
 udm_v4v6_user: root
 # native | mape | pppoe — see roles/udm_v4v6/files/udm_v4v6.sh
 udm_v4v6_mode: native
 udm_v4v6_ppp_if: ppp0
 # mape only. Empty = the single ip6tnl* that is not the ip6tnl0 fallback.
 udm_v4v6_tunnel_if: ""
-# Pushgateway grouping key: /metrics/job/<job>/site/<site>. The
-# udm-v4v6-push-stale alert matches on this job.
-udm_v4v6_push_job: udm_v4v6
+# Must match the textfile directory of prometheus.exporter.unix in
+# roles/alloy/templates/alloy-server.alloy.j2. The script writes
+# udm_v4v6.prom there; Alloy remote-writes it with job="node".
+udm_v4v6_textfile_dir: /var/lib/node_exporter/textfile_collector
 
-# The UDM side. This key may only run this command, from the poller's own
-# addresses: added to /root/.ssh/authorized_keys on the UDM as
-#   restrict,from="<poller IPs>",command="<this>" <public key>
+# The UDM side. This key may only run this command, from the poller's
+# addresses as the UDM sees them: added to /root/.ssh/authorized_keys on the
+# UDM as
+#   restrict,from="<addresses>",command="<this>" <public key>
 # It prints every interface's counters, so switching mode or interface never
 # needs a change on the UDM. See docs/udm-v4v6.md.
 udm_v4v6_forced_command: >-
