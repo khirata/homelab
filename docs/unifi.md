@@ -31,8 +31,15 @@ was deleted on 2026-09-30. Sakamoto lines in Loki stop at 14:12:51 that day.
 `syslog-relay.service` on sak2 (role `syslog_relay`, `make deploy-syslog-relay`)
 is a single socat that forwards each UDP datagram unchanged. Alloy takes
 `site` from the port it arrives on and `host` from the message body, so
-relayed lines carry the same labels as before. Only the UDM's own address
-(`10.77.12.1`, its br2 side) is accepted; anything else is dropped and logged.
+relayed lines carry the same labels as before.
+
+The UniFi syslog target applies to every device at the site, not only the
+gateway. The relay accepts sak2's own subnet, `10.77.12.0/24`: the UDM (from
+`10.77.12.1`, its br2 side) and any UniFi device addressed there. Devices on
+the management VLAN `10.77.11.0/24` (U7 Pro XG, USW Pro HD 24 PoE, the USW
+Flex 8s) are dropped on purpose, each packet logged as `refusing connection
+… due to range option` in `journalctl -u syslog-relay`. Before 2026-09-27
+`U7ProXG` and `USWProHD24PoE` also reached Loki; they no longer do.
 
 ```bash
 ssh sak2 'systemctl status syslog-relay; journalctl -u syslog-relay -n 20 --no-pager'
