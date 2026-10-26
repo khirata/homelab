@@ -4,6 +4,10 @@
 # =============================================================================
 siem_server_ip: "{{ lookup('env', 'SIEM_SERVER_IP') }}"
 siem_server_host: "{{ lookup('env', 'SIEM_SERVER_HOST') }}"
+# How Sakamoto hosts reach siem_server (laf3): its Tailscale address. sak2 does
+# not accept Tailscale subnet routes and the UniFi site-to-site VPN is gone
+# (deleted 2026-09-30), so 10.77.3.0/24 is unreachable from Sakamoto.
+siem_server_tailscale_ip: 100.80.24.51
 postgresql_server_ip: "{{ lookup('env', 'POSTGRESQL_SERVER_IP') }}"
 redis_server_ip: "{{ lookup('env', 'REDIS_SERVER_IP') }}"
 

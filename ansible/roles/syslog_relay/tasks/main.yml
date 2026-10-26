@@ -1,0 +1,35 @@
+---
+# Relays UniFi syslog from a gateway that cannot route to siem_server. Only
+# the gateway's syslog target changes on the UniFi side (docs/unifi.md).
+- name: Validate syslog_relay settings
+  ansible.builtin.assert:
+    that:
+      - syslog_relay_listen_port | int > 0
+      - syslog_relay_allowed_source is match('^[0-9.]+/[0-9]+$')
+      - syslog_relay_target is match('^[0-9.]+:[0-9]+$')
+    fail_msg: >-
+      Set syslog_relay_listen_port, syslog_relay_allowed_source (CIDR) and
+      syslog_relay_target (ip:port) in group_vars/syslog_relays.
+    quiet: true
+
+- name: Install socat
+  ansible.builtin.apt:
+    name: socat
+    state: present
+
+- name: Template syslog-relay systemd unit
+  ansible.builtin.template:
+    src: syslog-relay.service.j2
+    dest: /etc/systemd/system/syslog-relay.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart syslog-relay
+
+- name: Enable and start syslog-relay
+  ansible.builtin.systemd:
+    name: syslog-relay
+    enabled: true
+    state: started
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"

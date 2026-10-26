@@ -1,0 +1,10 @@
+---
+# syslog_relay role — forwards the Sakamoto UDM-SE's syslog to Alloy on
+# siem_server. The UDM sends to sak2 (UniFi: Activity Logging → SIEM server
+# 10.77.12.181:515); sak2 passes each datagram on unchanged. Alloy sets
+# site=sakamoto from the port it arrives on and host from the message body,
+# so the relay changes no labels. See docs/unifi.md.
+syslog_relay_listen_port: 515
+# Only the UDM: it sends from its br2 address on sak2's subnet.
+syslog_relay_allowed_source: 10.77.12.1/32
+syslog_relay_target: "{{ siem_server_tailscale_ip }}:{{ unifi_syslog_port_sak }}"
