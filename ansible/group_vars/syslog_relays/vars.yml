@@ -5,10 +5,11 @@
 # site=sakamoto from the port it arrives on and host from the message body,
 # so the relay changes no labels. See docs/unifi.md.
 syslog_relay_listen_port: 515
-# sak2's own subnet (br2) only. The UniFi syslog target applies to every
-# device at the site, so this admits the UDM (10.77.12.1) and any UniFi gear
-# addressed in 10.77.12.0/24 (e.g. USW Flex 2.5G 5). Devices on the
-# management VLAN 10.77.11.0/24 (U7 Pro XG, USW Pro HD 24 PoE, USW Flex 8s)
-# are deliberately still dropped. One CIDR only: it is socat's range=.
-syslog_relay_allowed_source: 10.77.12.0/24
+# The UniFi syslog target applies to every device at the site. Accept the
+# UDM (10.77.12.1, its br2 side, on sak2's subnet) and the UniFi gear on the
+# management VLAN (U7 Pro XG, USW Pro HD 24 PoE, USW Flex 2.5G 5/8/8 PoE —
+# DHCP, so by subnet). Everything else on the Sakamoto LANs is dropped.
+syslog_relay_allowed_sources:
+  - 10.77.11.0/24   # management VLAN (br0): switches, AP
+  - 10.77.12.0/24   # sak2's subnet (br2): the UDM itself
 syslog_relay_target: "{{ siem_server_tailscale_ip }}:{{ unifi_syslog_port_sak }}"
