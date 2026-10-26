@@ -220,6 +220,7 @@ Details, request format and client lifecycle: [alloy.md](alloy.md#loki-push-clie
 |---|---|---|---|---|
 | Systemd journal | 3100 | TCP | nodes → siem-host | Loki |
 | Unifi GW syslog | 514 | UDP | unifi-gw → siem-host | Alloy (server mode) |
+| Unifi GW syslog (Sakamoto) | 515 | UDP | UDM-SE → sak2 relay → siem-host (Tailscale) | Alloy (server mode) |
 | Node / RPi metrics | 9090 | TCP | nodes → siem-host | Prometheus |
 | Wazuh enrollment | 1515 | TCP | nodes → siem-host | Wazuh Manager |
 | Wazuh events | 1514 | TCP | nodes → siem-host | Wazuh Manager |

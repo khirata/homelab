@@ -169,6 +169,18 @@
       vars:
         udm_v4v6_textfile_dir: /var/lib/node_exporter/textfile_collector
 
+    # ── syslog_relay template ─────────────────────────────────────────────
+
+    - name: Render syslog-relay.service
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/syslog_relay/templates/syslog-relay.service.j2"
+        dest: "{{ render_dir }}/syslog-relay.service"
+        mode: "0644"
+      vars:
+        syslog_relay_listen_port: 515
+        syslog_relay_allowed_source: 10.0.11.1/32
+        syslog_relay_target: "10.0.0.1:{{ unifi_syslog_port_sak }}"
+
     # ── Redis / Infisical templates ───────────────────────────────────────
 
     - name: Render redis.conf

@@ -1,4 +1,4 @@
-.PHONY: all clean deploy check install-deps backup test deploy-ntfy-client deploy-nodes deploy-siem deploy-wazuh deploy-dashboards deploy-udm-v4v6 deploy-infisical redeploy-infisical env _pre-deploy-backup _infisical-check
+.PHONY: all clean deploy check install-deps backup test deploy-ntfy-client deploy-nodes deploy-siem deploy-wazuh deploy-dashboards deploy-udm-v4v6 deploy-syslog-relay deploy-infisical redeploy-infisical env _pre-deploy-backup _infisical-check
 
 -include .env
 export
@@ -107,6 +107,10 @@ deploy-wazuh: _infisical-check
 ## deploy-siem includes it; its alert and dashboard ship with deploy-siem / deploy-dashboards.
 deploy-udm-v4v6: _infisical-check
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags udm_v4v6
+
+## Deploy only the Sakamoto UniFi syslog relay on sak2 (syslog_relay role) — no backup pre-step
+deploy-syslog-relay: _infisical-check
+	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit syslog_relays --tags syslog_relay
 
 ## Deploy only Grafana dashboards (no stack restart)
 deploy-dashboards: _infisical-check

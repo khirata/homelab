@@ -73,3 +73,12 @@
       tags: [udm_v4v6]
     - role: infisical
       tags: [infisical]
+
+- name: Sakamoto UniFi syslog relay
+  hosts: syslog_relays
+  become: true
+  vars:
+    ansible_remote_tmp: /tmp
+  roles:
+    - role: syslog_relay
+      tags: [syslog_relay]

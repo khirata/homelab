@@ -13,8 +13,34 @@ Two separate pipelines collect data from Unifi:
 
 Grafana Alloy (server mode) listens on UDP 514 and parses RFC3164 syslog from the Unifi gateway.
 
-**Configure the Unifi controller:**
-Settings → System → Logging → Remote Syslog → `<SIEM_SERVER_IP>:514` UDP
+**Configure the Unifi controller** (Settings → System → Logging → Remote
+Syslog / Activity Logging → SIEM server, UDP):
+
+| Site | Gateway sends to | Path to Alloy |
+|---|---|---|
+| Lafayette (UCG-Fiber) | `<SIEM_SERVER_IP>:514` | direct, same LAN |
+| Sakamoto (UDM-SE) | `10.77.12.181:515` (sak2) | `syslog-relay` on sak2 → `100.80.24.51:515` over Tailscale |
+
+### Sakamoto relay (sak2)
+
+The UDM-SE cannot route to 10.77.3.0/24: its syslog used to ride the UniFi
+Magic Site-to-Site tunnel (`wgsts1000`), which broke on 2026-09-27 14:13 JST
+(the UCG re-pointed it at the UDM's private WAN address behind the Aterm) and
+was deleted on 2026-09-30. Sakamoto lines in Loki stop at 14:12:51 that day.
+
+`syslog-relay.service` on sak2 (role `syslog_relay`, `make deploy-syslog-relay`)
+is a single socat that forwards each UDP datagram unchanged. Alloy takes
+`site` from the port it arrives on and `host` from the message body, so
+relayed lines carry the same labels as before. Only the UDM's own address
+(`10.77.12.1`, its br2 side) is accepted; anything else is dropped and logged.
+
+```bash
+ssh sak2 'systemctl status syslog-relay; journalctl -u syslog-relay -n 20 --no-pager'
+ssh sak2 'sudo timeout 30 tcpdump -ni any udp port 515 -c 10'   # in from 10.77.12.1, out to 100.80.24.51
+```
+
+sak2 is a single point of failure here, as it already is for `unpoller-sak`
+and `udm_v4v6`.
 
 Logs appear in Grafana → Explore → Loki → `{job="unifi"}`.
 
