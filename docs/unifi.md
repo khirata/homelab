@@ -34,16 +34,19 @@ is a single socat that forwards each UDP datagram unchanged. Alloy takes
 relayed lines carry the same labels as before.
 
 The UniFi syslog target applies to every device at the site, not only the
-gateway. The relay accepts sak2's own subnet, `10.77.12.0/24`: the UDM (from
-`10.77.12.1`, its br2 side) and any UniFi device addressed there. Devices on
-the management VLAN `10.77.11.0/24` (U7 Pro XG, USW Pro HD 24 PoE, the USW
-Flex 8s) are dropped on purpose, each packet logged as `refusing connection
-… due to range option` in `journalctl -u syslog-relay`. Before 2026-09-27
-`U7ProXG` and `USWProHD24PoE` also reached Loki; they no longer do.
+gateway. The relay accepts the two Sakamoto VLANs that hold UniFi gear:
+`10.77.11.0/24` (management: U7 Pro XG, USW Pro HD 24 PoE, the USW Flexes)
+and `10.77.12.0/24` (the UDM, from `10.77.12.1`, its br2 side). By subnet,
+because the devices are on DHCP — the USW Flex 2.5G 5 moved from
+10.77.12.172 to 10.77.11.113 on a reboot.
+
+The filter is systemd's `IPAddressAllow=` (socat's `range=` takes a single
+CIDR). Packets from anywhere else are dropped silently, not logged;
+`systemctl show syslog-relay -p IPIngressPackets` counts what was let in.
 
 ```bash
 ssh sak2 'systemctl status syslog-relay; journalctl -u syslog-relay -n 20 --no-pager'
-ssh sak2 'sudo timeout 30 tcpdump -ni any udp port 515 -c 10'   # in from 10.77.12.1, out to 100.80.24.51
+ssh sak2 'systemctl show syslog-relay -p IPIngressPackets -p IPEgressPackets'   # in from the UniFi devices, out to 100.80.24.51
 ```
 
 sak2 is a single point of failure here, as it already is for `unpoller-sak`

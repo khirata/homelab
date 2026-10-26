@@ -178,7 +178,7 @@
         mode: "0644"
       vars:
         syslog_relay_listen_port: 515
-        syslog_relay_allowed_source: 10.0.11.1/32
+        syslog_relay_allowed_sources: [10.0.11.0/24, 10.0.12.0/24]
         syslog_relay_target: "10.0.0.1:{{ unifi_syslog_port_sak }}"
 
     # ── Redis / Infisical templates ───────────────────────────────────────

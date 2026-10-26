@@ -8,9 +8,8 @@ After=network-online.target tailscaled.service
 
 [Service]
 # One process, one datagram in → one datagram out, payload untouched.
-# range= drops (and logs) any source outside syslog_relay_allowed_source. socat exits on a send
-# error (e.g. Tailscale down); Restart= brings it back.
-ExecStart=/usr/bin/socat -u -b 65536 UDP4-RECV:{{ syslog_relay_listen_port }},range={{ syslog_relay_allowed_source }} UDP4-SENDTO:{{ syslog_relay_target }}
+# socat exits on a send error (e.g. Tailscale down); Restart= brings it back.
+ExecStart=/usr/bin/socat -u -b 65536 UDP4-RECV:{{ syslog_relay_listen_port }} UDP4-SENDTO:{{ syslog_relay_target }}
 Restart=always
 RestartSec=5
 # socat exits 143 on SIGTERM; a plain stop is not a failure.
@@ -23,6 +22,15 @@ CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 ProtectSystem=strict
 ProtectHome=yes
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Who may talk to this unit, enforced by systemd's cgroup BPF filter in both
+# directions: the allowed senders in, the relay target out. socat's own
+# range= takes a single CIDR, hence this instead. Anything else is dropped
+# silently (not logged); IPAccounting counts what was let through
+# (systemctl show syslog-relay -p IPIngressPackets).
+IPAddressDeny=any
+IPAddressAllow={{ syslog_relay_allowed_sources | join(' ') }} {{ syslog_relay_target.split(':')[0] }}
+IPAccounting=yes
 
 [Install]
 WantedBy=multi-user.target

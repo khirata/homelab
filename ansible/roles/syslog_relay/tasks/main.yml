@@ -5,11 +5,12 @@
   ansible.builtin.assert:
     that:
       - syslog_relay_listen_port | int > 0
-      - syslog_relay_allowed_source is match('^[0-9.]+/[0-9]+$')
+      - syslog_relay_allowed_sources | length > 0
+      - syslog_relay_allowed_sources | reject('match', '^[0-9.]+/[0-9]+$') | list | length == 0
       - syslog_relay_target is match('^[0-9.]+:[0-9]+$')
     fail_msg: >-
-      Set syslog_relay_listen_port, syslog_relay_allowed_source (CIDR) and
-      syslog_relay_target (ip:port) in group_vars/syslog_relays.
+      Set syslog_relay_listen_port, syslog_relay_allowed_sources (list of
+      CIDRs) and syslog_relay_target (ip:port) in group_vars/syslog_relays.
     quiet: true
 
 - name: Install socat
