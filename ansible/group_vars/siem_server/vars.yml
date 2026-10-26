@@ -5,3 +5,21 @@ ansible_user: "{{ lookup('env', 'SIEM_SERVER_USER') }}"
 
 # Alloy runs in server mode: receives Unifi syslog + exports local metrics
 alloy_mode: server
+
+# udm_v4v6 role — reads the Sakamoto UDM-SE's WAN counters over SSH every
+# minute and writes IPv4/IPv6 bytes for Alloy's textfile collector.
+# See docs/udm-v4v6.md.
+#
+# Reached through sak2's Tailscale subnet route (this host accepts routes).
+# sak2 SNATs, so the UDM sees the connection from sak2's own LAN address:
+# those are the from= of the UDM key (eth0, wlan0).
+udm_v4v6_host: 10.77.11.1
+udm_v4v6_from: [10.77.12.181, 10.77.12.182]
+# WAN1 (eth9) faces the Aterm, which terminates MAP-E today: the UDM sees
+# IPv4 and IPv6 as plain IPoE on eth9. Line changes:
+#   eo光 (PPPoE on the UDM)     udm_v4v6_mode: pppoe   (ppp_if defaults to ppp0)
+#   MAP-E on the UDM itself    udm_v4v6_mode: mape    (wan_if stays the
+#                              physical port; tunnel_if auto-detected)
+udm_v4v6_mode: native
+udm_v4v6_wan_if: eth9
+udm_v4v6_site: sakamoto

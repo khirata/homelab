@@ -1,0 +1,12 @@
+# Managed by Ansible — do not edit manually.
+# Source: roles/udm_v4v6/files/udm_v4v6.timer
+
+[Unit]
+Description=Push UDM-SE WAN IPv4/IPv6 byte counters every minute
+
+[Timer]
+OnCalendar=minutely
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

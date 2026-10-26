@@ -57,6 +57,7 @@ See [docs/setup.md](docs/setup.md) for full prerequisites and upgrade instructio
 | [docs/alloy.md](docs/alloy.md) | Grafana Alloy, RPi metrics |
 | [docs/unifi.md](docs/unifi.md) | Unifi syslog (Alloy) and metrics (Unpoller) |
 | [docs/unpoller-sites.md](docs/unpoller-sites.md) | Unpoller per-site containers: adding/removing a site, alerts |
+| [docs/udm-v4v6.md](docs/udm-v4v6.md) | UDM-SE WAN traffic split by IPv4 / IPv6 (SSH poll → Alloy textfile), line-change settings |
 | [docs/infisical.md](docs/infisical.md) | Infisical first run, upgrading, secrets |
 | [docs/postgresql.md](docs/postgresql.md) | PostgreSQL operations, backup, restore |
 | [docs/redis.md](docs/redis.md) | Redis operations |

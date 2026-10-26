@@ -375,6 +375,58 @@ groups:
           summary: "No UniFi device metrics from site {{ '{{' }} $labels.site {{ '}}' }} for 15+ min"
           description: "Target is registered but unifi_device_uptime_seconds stopped. Check the other unpoller-watchdog alerts."
 
+  # udm_v4v6 on the SIEM server reads the UDM-SE's IPv4/IPv6 WAN counters
+  # every minute into Alloy's textfile collector. On failure it leaves the
+  # last file in place, so Alloy keeps exporting old counters and only
+  # udm_v4v6_last_success_timestamp_seconds ages. Typical causes: a UniFi OS
+  # update wiped the restricted key from the UDM's authorized_keys, or sak2
+  # (the Tailscale subnet router to Sakamoto) is down (docs/udm-v4v6.md).
+  - orgId: 1
+    name: udm-v4v6-watchdog
+    folder: Homelab
+    interval: 1m
+    rules:
+
+      # 300s = 5 missed runs. noDataState=Alerting: no series at all means the
+      # file is gone or this host's Alloy stopped exporting it.
+      - uid: udm-v4v6-stale
+        title: "UDM WAN v4/v6 counters stale"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: 'time() - udm_v4v6_last_success_timestamp_seconds'
+              instant: true
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: reduce
+              expression: "A"
+              reducer: last
+              settings:
+                mode: dropNN
+          - refId: C
+            datasourceUid: "__expr__"
+            model:
+              type: threshold
+              expression: "B"
+              conditions:
+                - evaluator: { type: gt, params: [300] }
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        labels:
+          severity: warning
+          notify: ntfy
+        annotations:
+          # No $labels.site: on the noData path there are no labels.
+          summary: "UDM WAN IPv4/IPv6 counters not updated for 5+ min"
+          description: "udm_v4v6.timer on the SIEM server is failing — check journalctl -u udm_v4v6. Usually the UDM lost the restricted SSH key after a UniFi OS update, or sak2 is down."
+
 # Grafana's alerting provisioning is upsert-only: dropping a rule from `groups`
 # above leaves the previously provisioned rule live in Grafana's database, so it
 # keeps evaluating and paging. Withdrawing a rule therefore takes two steps —

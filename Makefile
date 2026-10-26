@@ -1,4 +1,4 @@
-.PHONY: all clean deploy check install-deps backup test deploy-ntfy-client deploy-nodes deploy-siem deploy-wazuh deploy-dashboards deploy-infisical redeploy-infisical env _pre-deploy-backup _infisical-check
+.PHONY: all clean deploy check install-deps backup test deploy-ntfy-client deploy-nodes deploy-siem deploy-wazuh deploy-dashboards deploy-udm-v4v6 deploy-infisical redeploy-infisical env _pre-deploy-backup _infisical-check
 
 -include .env
 export
@@ -102,6 +102,11 @@ deploy-nodes: _infisical-check
 ## Deploy only the Wazuh stack containers (indexer, dashboard, nginx proxy) — no backup pre-step
 deploy-wazuh: _infisical-check
 	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags wazuh_stack
+
+## Deploy only the UDM-SE WAN IPv4/IPv6 poller on the SIEM server (udm_v4v6 role) — no backup pre-step
+## deploy-siem includes it; its alert and dashboard ship with deploy-siem / deploy-dashboards.
+deploy-udm-v4v6: _infisical-check
+	$(INFISICAL_RUN) ansible-playbook $(PLAYBOOK) -i $(INVENTORY) --limit siem_server --tags udm_v4v6
 
 ## Deploy only Grafana dashboards (no stack restart)
 deploy-dashboards: _infisical-check
